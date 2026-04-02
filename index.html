@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Agenda de Entrevistas - Consultas internas - FONPLATA - Ingouville, Nelson & Asoc.
+  <title>Agenda de Entrevistas
 </title>
   
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
@@ -323,7 +323,7 @@ function InterviewScheduler() {
       <div className="app">
         <header className="hdr">
           <div>
-            <h1>Agenda de Entrevistas</h1>
+            <h1>Agenda de Entrevistas - Estrategia Intitucional FONPLATA 2027 - 2031</h1>
             <div className="hdr-sub">Reserve su horario · Teams · Bolivia UTC-4</div>
           </div>
           <div className="hdr-btns">
@@ -369,7 +369,7 @@ function InterviewScheduler() {
           {!showAdmin && view === "home" && (
             <div>
               <h2 className="sec-title">Selecciona un entrevistador</h2>
-              <p className="sec-sub">Elija un entrevistador según su disponibilidad horaria</p>
+              <p className="sec-sub">Elija un entrevistador según su disponibilidad horaria.</p>
               <div className="cards">
                 {Object.entries(INTERVIEWERS).map(([k, ivr]) => {
                   const { total, booked, available } = ivStats(k);
