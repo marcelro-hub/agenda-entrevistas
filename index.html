@@ -295,6 +295,12 @@ function InterviewScheduler() {
     .adm-hdr{background:#1A1A1A;color:#F7F4EF;font-size:0.67rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em}
     .badge{display:inline-block;padding:0.18rem 0.55rem;border-radius:20px;font-size:0.68rem;font-weight:600;margin-top:0.2rem}
     .b-nm{background:#FFF7ED;color:#9A3412}.b-jl{background:#EFF6FF;color:#1D4ED8}
+    .footer { background: #1A1A1A; color: rgba(247,244,239,0.6); padding: 3rem 1.25rem; margin-top: 4rem; border-top: 1px solid rgba(247,244,239,0.1); text-align: center; }
+    .footer-content { max-width: 900px; margin: 0 auto; }
+    .footer-title { font-family: 'Libre Baskerville', serif; color: #F7F4EF; font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .footer-email { color: #F7F4EF; text-decoration: none; font-weight: 500; border-bottom: 1px solid rgba(247,244,239,0.3); padding-bottom: 2px; transition: all 0.2s; }
+    .footer-email:hover { border-bottom-color: #F7F4EF; opacity: 0.8; }
+    .footer-copyright { font-size: 0.75rem; margin-top: 2rem; opacity: 0.4; line-height: 1.4; }
     @media(max-width:580px){.cards{grid-template-columns:1fr}.cal-row{grid-template-columns:90px 1fr}.adm-row{grid-template-columns:1fr 1fr}}
   `;
 
@@ -323,7 +329,7 @@ function InterviewScheduler() {
       <div className="app">
         <header className="hdr">
           <div>
-            <h1>Agenda de Entrevistas - Estrategia Institucional FONPLATA 2027 - 2031</h1>
+            <h1>Agenda de Entrevistas - Estrategia Institucional 2027 - 2031</h1>
             <div className="hdr-sub">Reserve su horario · Teams · Bolivia UTC-4</div>
           </div>
           <div className="hdr-btns">
@@ -453,8 +459,29 @@ function InterviewScheduler() {
 
           
         </main>
+        
+       {/* --- INICIO DEL FOOTER --- */}
+        <footer className="footer">
+          <div className="footer-content">
+            <div className="footer-title">Contacto</div>
+            <p style={{ fontSize: "0.85rem", marginBottom: "0.5rem" }}>
+              ¿Tiene alguna duda sobre el proceso de entrevistas?
+            </p>
+            <a href="mailto:mrojas@fonplata.org" className="footer-email">
+              mrojas@fonplata.org
+            </a>
+            <div className="footer-copyright">
+              © 2026 FONPLATA · Estrategia Institucional 2027 - 2031.
+              <br />Todos los derechos reservados.
+            </div>
+          </div>
+        </footer>
+        {/* --- FIN DEL FOOTER --- */}
+        
       </div>
 
+
+        
       {/* MODAL */}
       {showModal && slot && iv && (
         <div className="modal-bg" onClick={e => e.target === e.currentTarget && !loading && setShowModal(false)}>
