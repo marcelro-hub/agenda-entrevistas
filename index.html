@@ -295,12 +295,13 @@ function InterviewScheduler() {
     .adm-hdr{background:#1A1A1A;color:#F7F4EF;font-size:0.67rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em}
     .badge{display:inline-block;padding:0.18rem 0.55rem;border-radius:20px;font-size:0.68rem;font-weight:600;margin-top:0.2rem}
     .b-nm{background:#FFF7ED;color:#9A3412}.b-jl{background:#EFF6FF;color:#1D4ED8}
-    .footer { background: #1A1A1A; color: rgba(247,244,239,0.6); padding: 3rem 1.25rem; margin-top: 4rem; border-top: 1px solid rgba(247,244,239,0.1); text-align: center; }
+    /* --- ESTILOS DEL FOOTER COMPACTO --- */
+    .footer { background: #1A1A1A; color: rgba(247,244,239,0.6); padding: 1.25rem; margin-top: 2rem; border-top: 1px solid rgba(247,244,239,0.1); text-align: center; }
     .footer-content { max-width: 900px; margin: 0 auto; }
-    .footer-title { font-family: 'Libre Baskerville', serif; color: #F7F4EF; font-size: 1.1rem; margin-bottom: 0.5rem; }
-    .footer-email { color: #F7F4EF; text-decoration: none; font-weight: 500; border-bottom: 1px solid rgba(247,244,239,0.3); padding-bottom: 2px; transition: all 0.2s; }
+    .footer-title { font-family: 'Libre Baskerville', serif; color: #F7F4EF; font-size: 0.95rem; margin-bottom: 0.2rem; }
+    .footer-email { color: #F7F4EF; text-decoration: none; font-weight: 500; font-size: 0.8rem; border-bottom: 1px solid rgba(247,244,239,0.3); padding-bottom: 1px; transition: all 0.2s; }
     .footer-email:hover { border-bottom-color: #F7F4EF; opacity: 0.8; }
-    .footer-copyright { font-size: 0.75rem; margin-top: 2rem; opacity: 0.4; line-height: 1.4; }
+    .footer-copyright { font-size: 0.65rem; margin-top: 0.8rem; opacity: 0.4; line-height: 1.3; }
     @media(max-width:580px){.cards{grid-template-columns:1fr}.cal-row{grid-template-columns:90px 1fr}.adm-row{grid-template-columns:1fr 1fr}}
   `;
 
@@ -464,20 +465,20 @@ function InterviewScheduler() {
         <footer className="footer">
           <div className="footer-content">
             <div className="footer-title">Contacto</div>
-            <p style={{ fontSize: "0.85rem", marginBottom: "0.5rem" }}>
-              ¿Tiene alguna duda sobre esta página?
+            <p style={{ fontSize: "0.75rem", marginBottom: "0.3rem" }}>
+              ¿Tiene alguna duda sobre el proceso de entrevistas?
             </p>
             <a href="mailto:mrojas@fonplata.org" className="footer-email">
               mrojas@fonplata.org
             </a>
             <div className="footer-copyright">
-              © 2026 FONPLATA ·
-              Vicepresidencia de Desarrollo Estratégico
+              © 2026 FONPLATA · Estrategia Institucional 2027 - 2031.
               <br />Todos los derechos reservados.
             </div>
           </div>
         </footer>
         {/* --- FIN DEL FOOTER --- */}
+       
         
       </div>
 
