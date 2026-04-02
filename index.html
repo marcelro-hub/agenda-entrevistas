@@ -124,16 +124,25 @@ function InterviewScheduler() {
   const [showAdmin, setShowAdmin] = useState(false);
   const remindersSet = useRef(new Set());
 
-  const loadBookings = useCallback(async () => {
+ const loadBookings = useCallback(async () => {
     try {
-      // Llamada a tu base de datos real (Google Sheets / SheetDB)
       const res = await fetch(DB_URL);
       const data = await res.json();
       
-      // Transformamos los datos de la hoja de cálculo al formato de tu app
-      // (Asumiendo que la API devuelve un objeto o array con las reservas)
-      if (data && typeof data === 'object') {
-        setBookings(data);
+      // Traducimos la lista (Array) de Google Sheets al Diccionario (Objeto) de la app
+      if (Array.isArray(data)) {
+        const objBookings = {};
+        data.forEach(fila => {
+          // Si la fila tiene datos, la guardamos con su llave correspondiente
+          if (fila.key) {
+            objBookings[fila.key] = { 
+              name: fila.name, 
+              email: fila.email, 
+              at: fila.at 
+            };
+          }
+        });
+        setBookings(objBookings);
       }
     } catch (error) {
       console.log("Aún no hay reservas o hubo un error al leer la base de datos.");
