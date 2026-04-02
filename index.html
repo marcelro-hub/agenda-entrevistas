@@ -127,29 +127,35 @@ function InterviewScheduler() {
  const loadBookings = useCallback(async () => {
     try {
       const res = await fetch(DB_URL);
+      if (!res.ok) throw new Error("Error en red");
       const data = await res.json();
       
-      // Traducimos la lista (Array) de Google Sheets al Diccionario (Objeto) de la app
-      if (Array.isArray(data)) {
-        const objBookings = {};
+      const objBookings = {};
+
+      // Verificamos si data es una lista válida
+      if (data && Array.isArray(data)) {
         data.forEach(fila => {
-          // Si la fila tiene datos, la guardamos con su llave correspondiente
-          if (fila.key) {
+          // Usamos la llave 'key' si existe, si no, saltamos esa fila
+          if (fila && fila.key) {
             objBookings[fila.key] = { 
-              name: fila.name, 
-              email: fila.email, 
-              at: fila.at 
+              name: fila.name || "Sin nombre", 
+              email: fila.email || "", 
+              at: fila.at || "" 
             };
           }
         });
-        setBookings(objBookings);
       }
+      
+      setBookings(objBookings);
     } catch (error) {
-      console.log("Aún no hay reservas o hubo un error al leer la base de datos.");
+      console.error("Error cargando registros:", error);
+      // Si falla la red, al menos dejamos las reservas vacías para que la app no muera
+      setBookings({});
+    } finally {
+      setStorageReady(true);
     }
-    setStorageReady(true);
   }, []);
-
+  
   useEffect(() => {
     loadBookings();
     if (typeof Notification !== "undefined") Notification.requestPermission();
