@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Agenda de Entrevistas</title>
+  <title>Agenda de Entrevistas - Consultas internas - FONPLATA - Ingouville, Nelson & Asoc.
+</title>
   
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
@@ -323,7 +324,7 @@ function InterviewScheduler() {
         <header className="hdr">
           <div>
             <h1>Agenda de Entrevistas</h1>
-            <div className="hdr-sub">Reservá tu horario · Teams · Bolivia UTC-4</div>
+            <div className="hdr-sub">Reserve su horario · Teams · Bolivia UTC-4</div>
           </div>
           <div className="hdr-btns">
             {view !== "home" && !showAdmin && (
@@ -367,8 +368,8 @@ function InterviewScheduler() {
           {/* HOME */}
           {!showAdmin && view === "home" && (
             <div>
-              <h2 className="sec-title">Seleccioná tu entrevistador/a</h2>
-              <p className="sec-sub">Elegí con quién tenés tu entrevista y reservá un horario disponible</p>
+              <h2 className="sec-title">Selecciona un entrevistador</h2>
+              <p className="sec-sub">Elija un entrevistador según su disponibilidad horaria</p>
               <div className="cards">
                 {Object.entries(INTERVIEWERS).map(([k, ivr]) => {
                   const { total, booked, available } = ivStats(k);
@@ -391,7 +392,7 @@ function InterviewScheduler() {
                 })}
               </div>
               <p style={{ marginTop: "1.75rem", fontSize: "0.75rem", color: "#9A9A9A", textAlign: "center" }}>
-                🔒 Los horarios se bloquean en tiempo real · Sin inicio de sesión necesario
+                🔒 Los horarios se agendan una vez confirmados
               </p>
             </div>
           )}
