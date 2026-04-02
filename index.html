@@ -330,7 +330,7 @@ function InterviewScheduler() {
       <div className="app">
         <header className="hdr">
           <div>
-            <h1>Agenda de Entrevistas - Estrategia Institucional 2027 - 2031</h1>
+            <h1>Agenda de Entrevistas Internas - Estrategia Institucional 2027-2031</h1>
             <div className="hdr-sub">Reserve su horario · Teams · Bolivia UTC-4</div>
           </div>
           <div className="hdr-btns">
@@ -354,7 +354,7 @@ function InterviewScheduler() {
                 {rows.length === 0
                   ? <div style={{ background: "#fff", borderRadius: "12px", padding: "2.5rem", textAlign: "center", color: "#9A9A9A", border: "1px solid #E8E3DC" }}>Aún no hay reservas</div>
                   : <div className="adm-tbl">
-                    <div className="adm-row adm-hdr"><span>Candidato/a</span><span>Email</span><span>Fecha</span><span>Hora</span></div>
+                    <div className="adm-row adm-hdr"><span>Entrevistado/a</span><span>Email</span><span>Fecha</span><span>Hora</span></div>
                     {rows.map((r, i) => {
                       const ivr = INTERVIEWERS[r.id];
                       return (
