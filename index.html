@@ -181,7 +181,7 @@ function InterviewScheduler() {
     });
   }, [bookings]);
 
-  const handleBook = async () => {
+const handleBook = async () => {
     if (!form.name.trim() || !form.email.trim() || !slot || !selectedIv) return;
     const key = `${selectedIv}|${slot.date}|${slot.time}`;
     if (bookings[key]) { alert("Este horario acaba de ser tomado. Elegí otro."); setShowModal(false); return; }
@@ -191,23 +191,38 @@ function InterviewScheduler() {
       const nb = { name: form.name.trim(), email: form.email.trim(), at: new Date().toISOString() };
       const newBookings = { ...bookings, [key]: nb };
       
-      // ENVIAMOS LOS DATOS A INTERNET (A tu Google Sheet vía fetch)
-      await fetch(DB_URL, {
+      // ENVIAMOS LOS DATOS A INTERNET
+      const res = await fetch(DB_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key: key, ...nb }),
+        // Mantenemos la estructura que ya te funcionaba:
+        body: JSON.stringify({ key: key, ...nb }), 
       });
 
-      setBookings(newBookings);
-      setShowModal(false);
-      setConfirmedBooking({ iv: INTERVIEWERS[selectedIv], date: slot.date, time: slot.time, ...nb });
-      setView("success");
-      setForm({ name: "", email: "" });
-      
-    } catch (error) { 
-      alert("Error de conexión. Intentá de nuevo."); 
-    } finally { 
-      setLoading(false); 
+      // ESTA ES LA PARTE NUEVA QUE ACTIVA LA CONFIRMACIÓN
+      if (res.ok) {
+        const newBooking = {
+          iv: selectedIv,
+          date: slot.date,
+          time: slot.time,
+          name: form.name,
+          email: form.email
+        };
+        
+        setConfirmedBooking(newBooking); // 1. Guarda los datos para la tarjeta
+        setView("success");              // 2. Cambia la pantalla a éxito
+        setShowModal(false);             // 3. Cierra el modal
+        setForm({ name: "", email: "" });// 4. Limpia el formulario
+        loadBookings();                  // 5. Refresca la base de datos
+      } else {
+        alert("Error al guardar en la base de datos. Intente de nuevo.");
+      }
+
+    } catch (err) {
+      console.error("Error en el registro:", err);
+      alert("Hubo un problema de conexión.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -562,7 +577,7 @@ function InterviewScheduler() {
               <button className="btn-ok" disabled={loading || !form.name.trim() || !form.email.trim()}
                 style={{ background: (!form.name.trim() || !form.email.trim() || loading) ? "#D1D5DB" : iv.accentColor }}
                 onClick={handleBook}>
-                {loading ? "Reservando..." : "✅ Confirmar"}
+                {loading ? "Reservando..." : "Confirmar"}
               </button>
             </div>
           </div>
@@ -572,7 +587,6 @@ function InterviewScheduler() {
   );
 }
 
-    // IMPORTANTE: Cuando pegues tu código, asegúrate de quitar las palabras "export default"
     // Debe decir solamente: function InterviewScheduler() { ... }
     
     // --------------------------------
