@@ -245,12 +245,13 @@ const handleBook = async () => {
     .main { flex-grow: 1; max-width: 900px; margin: 0 auto; padding: 2rem 1.25rem; width: 100%; }
     
     /* --- ESTILOS DEL FOOTER COMPACTO Y ADHERIDO --- */
-    .footer { background: #1A1A1A; color: rgba(247,244,239,0.6); padding: 0.75rem 1.25rem; margin-top: 1rem; border-top: 1px solid rgba(247,244,239,0.1); text-align: center; }
+    /* --- ESTILOS DEL FOOTER ULTRA COMPACTO --- */
+    .footer { background: #1A1A1A; color: rgba(247,244,239,0.6); padding: 0.4rem 1rem; margin-top: 1rem; border-top: 1px solid rgba(247,244,239,0.1); text-align: center; }
     .footer-content { max-width: 900px; margin: 0 auto; }
-    .footer-title { font-family: 'Libre Baskerville', serif; color: #F7F4EF; font-size: 0.85rem; margin-bottom: 0.1rem; }
-    .footer-email { color: #F7F4EF; text-decoration: none; font-weight: 500; font-size: 0.75rem; border-bottom: 1px solid rgba(247,244,239,0.3); padding-bottom: 1px; transition: all 0.2s; }
+    .footer-title { font-family: 'Libre Baskerville', serif; color: #F7F4EF; font-size: 0.75rem; margin-bottom: 0rem; }
+    .footer-email { color: #F7F4EF; text-decoration: none; font-weight: 500; font-size: 0.65rem; border-bottom: 1px solid rgba(247,244,239,0.3); padding-bottom: 1px; transition: all 0.2s; }
     .footer-email:hover { border-bottom-color: #F7F4EF; opacity: 0.8; }
-    .footer-copyright { font-size: 0.6rem; margin-top: 0.5rem; opacity: 0.4; line-height: 1.2; }
+    .footer-copyright { font-size: 0.55rem; margin-top: 0.2rem; opacity: 0.4; line-height: 1.1; }
     /* --- FIN DE CAMBIOS PARA FOOTER --- */
 
     .hdr{background:#1A1A1A;color:#F7F4EF;padding:1.1rem 1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem}
@@ -379,7 +380,7 @@ const handleBook = async () => {
                       const ivr = INTERVIEWERS[r.id];
                       return (
                         <div key={i} className="adm-row">
-                          <div><div style={{ fontWeight: 500 }}>{r.name}</div><span className={`badge ${r.id === "noelia" ? "b-nm" : "b-jl"}`}>{ivr?.name.split(" ")[0]}</span></div>
+                          <div><div style={{ fontWeight: 500 }}>{r.name}</div><span className={`badge ${r.id === "noelia" ? "b-nm" : "b-jl"}`}>{ivr?.name}</span></div>
                           <div style={{ color: "#6B6B6B", fontSize: "0.77rem", wordBreak: "break-all" }}>{r.email}</div>
                           <div style={{ fontSize: "0.78rem", textTransform: "capitalize" }}>{formatDateShort(r.date)}</div>
                           <div style={{ fontWeight: 600, color: ivr?.accentColor }}>{r.time} hs</div>
@@ -482,9 +483,9 @@ const handleBook = async () => {
           {!showAdmin && view === "success" && (
             <div className="scard" style={{ textAlign: "center" }}>
               <div className="s-icon">✅</div>
-              <div className="s-title">¡Reserva Confirmada!</div>
+              <div className="s-title">Reserva Confirmada</div>
               <p style={{ color: "#6B6B6B", fontSize: "0.9rem", marginBottom: "1.5rem" }}>
-                Gracias por agendar su entrevista para la Estrategia Institucional FONPLATA 2027 - 2031.
+                En el transcurso del día se les enviará el enlace para la reunión vía Teams
               </p>
               
               {confirmedBooking && (
@@ -528,23 +529,23 @@ const handleBook = async () => {
           
         </main>
         
-       {/* --- INICIO DEL FOOTER COMPACTO Y ADHERIDO --- */}
-        <footer className="footer">
-          <div className="footer-content">
-            <div className="footer-title">Contacto</div>
-            <p style={{ fontSize: "0.7rem", marginBottom: "0.2rem", color: "rgba(247,244,239,0.6)" }}>
-              ¿Tiene alguna duda sobre esta página?
-            </p>
-            <a href="mailto:mrojas@fonplata.org" className="footer-email">
-              mrojas@fonplata.org
-            </a>
-            <div className="footer-copyright">
-              © 2026 FONPLATA · 
-              <br />Todos los derechos reservados.
+       {/* --- INICIO DEL FOOTER ULTRA COMPACTO --- */}
+          <footer className="footer">
+            <div className="footer-content">
+              <div className="footer-title">Contacto</div>
+              <p style={{ fontSize: "0.6rem", marginBottom: "0.1rem", color: "rgba(247,244,239,0.6)" }}>
+                ¿Tiene alguna duda sobre el proceso de entrevistas?
+              </p>
+              <a href="mailto:mrojas@fonplata.org" className="footer-email">
+                mrojas@fonplata.org
+              </a>
+              <div className="footer-copyright">
+                © 2026 FONPLATA · Estrategia Institucional 2027 - 2031.
+                <br />Todos los derechos reservados.
+              </div>
             </div>
-          </div>
-        </footer>
-        {/* --- FIN DEL FOOTER COMPACTO Y ADHERIDO --- */}
+          </footer>
+          {/* --- FIN DEL FOOTER ULTRA COMPACTO --- */}
        
         
       </div>
