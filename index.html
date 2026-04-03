@@ -404,7 +404,7 @@ function InterviewScheduler() {
                 })}
               </div>
               <p style={{ marginTop: "1.75rem", fontSize: "0.75rem", color: "#9A9A9A", textAlign: "center" }}>
-                🔒 Los horarios disponibles son únicos.
+                 Los horarios disponibles son únicos.
               </p>
             </div>
           )}
@@ -463,6 +463,61 @@ function InterviewScheduler() {
             </div>
           )}
 
+        {/* CALENDAR */}
+          {!showAdmin && view === "calendar" && iv && (
+            // ... (todo el código del calendario que ya tienes) ...
+            </div>
+          )}
+
+          {/* --- PANTALLA DE ÉXITO (CONFIRMACIÓN) --- */}
+          {!showAdmin && view === "success" && (
+            <div className="scard" style={{ textAlign: "center" }}>
+              <div className="s-icon">✅</div>
+              <div className="s-title">¡Reserva Confirmada!</div>
+              <p style={{ color: "#6B6B6B", fontSize: "0.9rem", marginBottom: "1.5rem" }}>
+                Gracias por agendar su entrevista para la Estrategia Institucional FONPLATA 2027 - 2031.
+              </p>
+              
+              {confirmedBooking && (
+                <div style={{ textAlign: "left", marginBottom: "1.5rem" }}>
+                  <div className="drow">
+                    <span className="dlbl">Candidato/a:</span>
+                    <span className="dval">{confirmedBooking.name}</span>
+                  </div>
+                  <div className="drow">
+                    <span className="dlbl">Entrevistador:</span>
+                    <span className="dval" style={{ textTransform: "capitalize" }}>
+                      {INTERVIEWERS[confirmedBooking.iv]?.name || confirmedBooking.iv}
+                    </span>
+                  </div>
+                  <div className="drow">
+                    <span className="dlbl">Fecha:</span>
+                    <span className="dval" style={{ textTransform: "capitalize" }}>
+                      {formatDateShort(confirmedBooking.date)}
+                    </span>
+                  </div>
+                  <div className="drow">
+                    <span className="dlbl">Hora:</span>
+                    <span className="dval">{confirmedBooking.time} hs</span>
+                  </div>
+                </div>
+              )}
+
+              <button className="btn-p" onClick={downloadICS} style={{ marginBottom: "0.65rem" }}>
+                Descargar evento (.ics)
+              </button>
+              
+              <button className="btn-s" onClick={() => { 
+                setView("home"); 
+                setConfirmedBooking(null); 
+                setSelectedIv(null); 
+              }}>
+                Volver al inicio
+              </button>
+            </div>
+          )}
+          
+        </main>
           
         </main>
         
