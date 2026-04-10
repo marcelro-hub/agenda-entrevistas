@@ -417,9 +417,16 @@ const handleBook = async () => {
                     <span style={{ fontSize: "0.66rem", color: "rgba(247,244,239,0.4)", textTransform: "uppercase", letterSpacing: "0.08em" }}>Horarios disponibles</span>
                   </div>
                 </div>
-                {Object.keys(iv.slots).sort().map(date => {
+               {Object.keys(iv.slots).sort().map(date => {
                   const [y, mo, d] = date.split("-").map(Number);
                   const obj = new Date(y, mo - 1, d);
+                  
+                  // --- INICIO FILTRO DE FECHAS PASADAS ---
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0); // Reseteamos la hora para comparar solo el día exacto
+                  if (obj < today) return null; // Si la fecha es de ayer para atrás, no la dibuja
+                  // --- FIN FILTRO DE FECHAS PASADAS ---
+
                   const times = iv.slots[date];
                   const allTaken = times.every(t => bookings[`${selectedIv}|${date}|${t}`]);
                   return (
