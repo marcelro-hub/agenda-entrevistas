@@ -21,62 +21,11 @@
     // (Desde la variable const DB_URL = "..." hasta la última llave } de tu componente)
   
 
-const INTERVIEWERS = {
-  julian: {
-    id: "julian",
-    name: "Entrevistador 1",
-    email: "julian@ingouvillenelson.com",
-    teamsLink: "El enlace se va a enviar por Teams",
-    initials: "E1",
-    accentColor: "#1D4ED8",
-    bgGradient: "linear-gradient(135deg, #1D4ED8 0%, #2563EB 100%)",
-    slots: {
-      // Lunes 13: 1 pm a 5 pm (Maximo 3)
-      "2026-04-13": ["13:00", "14:30", "16:00"], 
-      // Martes 14: 8 am a 1 pm (Maximo 3)
-      "2026-04-14": ["08:30", "10:00", "11:30"], 
-      // Miercoles 15: 11 am a 4 pm (Maximo 4)
-      "2026-04-15": ["11:00"], 
-      // Jueves 16: 8 am a 10:30 am (Maximo 2)
-      "2026-04-16": ["08:00", "09:15"], 
-      // Viernes 17: 8:30 a 11:30 (Max 2)
-      "2026-04-17": ["08:30", "10:00"],
-    },
-  },
-  noelia: {
-    id: "noelia",
-    name: "Entrevistador 2",
-    email: "noelia@ingouvillenelson.com",
-    teamsLink: "El enlace se va a enviar por Teams",
-    initials: "E2",
-    accentColor: "#C2410C",
-    bgGradient: "linear-gradient(135deg, #C2410C 0%, #EA580C 100%)",
-    slots: {
-      // Martes 7: 8:30 am a 11 am (Maximo 2)
-      "2026-04-07": ["08:30", "09:45"], 
-      // Miercoles 8: 9 am a 4 pm (Maximo 4)
-      "2026-04-08": ["09:00", "11:00", "13:30", "15:00"], 
-      // Jueves 9: 11 am a 4 pm (Maximo 3)
-      "2026-04-09": ["11:00", "13:00", "14:30"], 
-      // Viernes 10: 8:30 am a 11:30 am (Maximo 2)
-      "2026-04-10": ["08:30", "10:00"], 
-      // Lunes 13: 1 pm a 5 pm (Maximo 3)
-      "2026-04-13": ["13:00", "14:30", "16:00"], 
-      // Martes 14: 1 pm a 5 pm (Maximo 3)
-      "2026-04-14": ["13:00", "14:30", "16:00"],
-      // Miercoles 15: 11am a 5 pm (Maximo 4)
-      "2026-04-15": ["11:00", "12:30", "14:00", "15:30"],
-      // Jueves 16: 11 am a 4 pm (Maximo 3)
-       "2026-04-16": ["11:00", "13:30", "15:00"],
-      // Viernes 17: 8:30 a 11:30 (Max 2)
-      "2026-04-17": ["08:30", "10:00"],
-    },
-  },
-};
-
 const DURATION_MIN = 60;
 
-const DB_URL = "https://sheetdb.io/api/v1/oiokkzssp3f4v";
+// ⚠️ IMPORTANTE: Después de hacer deploy en Railway, reemplazá este valor
+// con la URL real de tu servicio, ej: "https://agenda-entrevistas-api.railway.app/api"
+const API_BASE = "https://TU_SERVICIO.railway.app/api";
 
 
 function formatDate(dateStr) {
@@ -127,24 +76,33 @@ function InterviewScheduler() {
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ name: "", email: "" });
   const [bookings, setBookings] = useState({});
+  const [interviewers, setInterviewers] = useState({});      // Antes era INTERVIEWERS (hardcodeado)
+  const [interviewersReady, setInterviewersReady] = useState(false);
   const [loading, setLoading] = useState(false);
   const [storageReady, setStorageReady] = useState(false);
   const [confirmedBooking, setConfirmedBooking] = useState(null);
   const [showAdmin, setShowAdmin] = useState(false);
   const remindersSet = useRef(new Set());
 
- const loadBookings = useCallback(async () => {
+  // Carga los entrevistadores y sus slots desde la API (se ejecuta una sola vez)
+  useEffect(() => {
+    fetch(`${API_BASE}/interviewers`)
+      .then(r => { if (!r.ok) throw new Error("Error cargando entrevistadores"); return r.json(); })
+      .then(data => setInterviewers(data))
+      .catch(err => console.error("Error cargando entrevistadores:", err))
+      .finally(() => setInterviewersReady(true));
+  }, []);
+
+  // Carga las reservas desde la API — se refresca cada 12 segundos
+  const loadBookings = useCallback(async () => {
     try {
-      const res = await fetch(DB_URL);
+      const res = await fetch(`${API_BASE}/bookings`);
       if (!res.ok) throw new Error("Error en red");
       const data = await res.json();
       
       const objBookings = {};
-
-      // Verificamos si data es una lista válida
       if (data && Array.isArray(data)) {
         data.forEach(fila => {
-          // Usamos la llave 'key' si existe, si no, saltamos esa fila
           if (fila && fila.key) {
             objBookings[fila.key] = { 
               name: fila.name || "Sin nombre", 
@@ -154,11 +112,9 @@ function InterviewScheduler() {
           }
         });
       }
-      
       setBookings(objBookings);
     } catch (error) {
-      console.error("Error cargando registros:", error);
-      // Si falla la red, al menos dejamos las reservas vacías para que la app no muera
+      console.error("Error cargando reservas:", error);
       setBookings({});
     } finally {
       setStorageReady(true);
@@ -197,33 +153,35 @@ const handleBook = async () => {
     setLoading(true);
     try {
       const nb = { name: form.name.trim(), email: form.email.trim(), at: new Date().toISOString() };
-      const newBookings = { ...bookings, [key]: nb };
       
-      // ENVIAMOS LOS DATOS A INTERNET
-      const res = await fetch(DB_URL, {
+      const res = await fetch(`${API_BASE}/bookings`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // Mantenemos la estructura que ya te funcionaba:
-        body: JSON.stringify({ key: key, ...nb }), 
+        body: JSON.stringify({ key: key, ...nb }),
       });
 
-      // ESTA ES LA PARTE NUEVA QUE ACTIVA LA CONFIRMACIÓN
       if (res.ok) {
         const newBooking = {
-          iv: selectedIv,
+          iv: selectedIv,               // Guardamos el ID del entrevistador
           date: slot.date,
           time: slot.time,
           name: form.name,
           email: form.email
         };
-        
-        setConfirmedBooking(newBooking); // 1. Guarda los datos para la tarjeta
-        setView("success");              // 2. Cambia la pantalla a éxito
-        setShowModal(false);             // 3. Cierra el modal
-        setForm({ name: "", email: "" });// 4. Limpia el formulario
-        loadBookings();                  // 5. Refresca la base de datos
+        setConfirmedBooking(newBooking);
+        setView("success");
+        setShowModal(false);
+        setForm({ name: "", email: "" });
+        loadBookings();
       } else {
-        alert("Error al guardar en la base de datos. Intente de nuevo.");
+        const errData = await res.json().catch(() => ({}));
+        if (res.status === 409) {
+          alert("Este horario acaba de ser tomado. Elegí otro.");
+          setShowModal(false);
+          loadBookings();
+        } else {
+          alert(errData.error || "Error al guardar en la base de datos. Intente de nuevo.");
+        }
       }
 
     } catch (err) {
@@ -236,13 +194,16 @@ const handleBook = async () => {
 
   const downloadICS = () => {
     if (!confirmedBooking) return;
-    const { iv, date, time, name, email } = confirmedBooking;
-    const blob = new Blob([generateICS(iv, date, time, name, email)], { type: "text/calendar;charset=utf-8" });
+    const { iv: ivId, date, time, name, email } = confirmedBooking;
+    // Resolvemos el ID del entrevistador al objeto completo (necesario para generateICS)
+    const ivObj = interviewers[ivId];
+    if (!ivObj) return;
+    const blob = new Blob([generateICS(ivObj, date, time, name, email)], { type: "text/calendar;charset=utf-8" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob); a.download = `entrevista_${date}_${time.replace(":", "")}.ics`; a.click();
   };
 
-  const iv = selectedIv ? INTERVIEWERS[selectedIv] : null;
+  const iv = selectedIv ? interviewers[selectedIv] : null;
 
   const css = `
     @import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap');
@@ -334,7 +295,7 @@ const handleBook = async () => {
     @media(max-width:580px){.cards{grid-template-columns:1fr}.cal-row{grid-template-columns:90px 1fr}.adm-row{grid-template-columns:1fr 1fr}}
   `;
 
-  if (!storageReady) return (
+  if (!storageReady || !interviewersReady) return (
     <>
       <style>{css}</style>
       <div className="app" style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", color: "#6B6B6B", fontSize: "0.875rem" }}>
@@ -345,7 +306,7 @@ const handleBook = async () => {
 
   // Stat helpers
   function ivStats(k) {
-    const ivr = INTERVIEWERS[k]; let total = 0, booked = 0;
+    const ivr = interviewers[k]; let total = 0, booked = 0;
     Object.entries(ivr.slots).forEach(([dt, ts]) => { total += ts.length; ts.forEach(t => { if (bookings[`${k}|${dt}|${t}`]) booked++; }); });
     return { total, booked, available: total - booked };
   }
@@ -385,7 +346,7 @@ const handleBook = async () => {
                   : <div className="adm-tbl">
                     <div className="adm-row adm-hdr"><span>Entrevistado/a</span><span>Email</span><span>Fecha</span><span>Hora</span></div>
                     {rows.map((r, i) => {
-                      const ivr = INTERVIEWERS[r.id];
+                      const ivr = interviewers[r.id];
                       return (
                         <div key={i} className="adm-row">
                           <div><div style={{ fontWeight: 500 }}>{r.name}</div><span className={`badge ${r.id === "noelia" ? "b-nm" : "b-jl"}`}>{ivr?.name}</span></div>
@@ -407,7 +368,7 @@ const handleBook = async () => {
               <h2 className="sec-title">Selecciona un entrevistador</h2>
               <p className="sec-sub">Elija un entrevistador según su disponibilidad horaria.</p>
               <div className="cards">
-                {Object.entries(INTERVIEWERS).map(([k, ivr]) => {
+                {Object.entries(interviewers).map(([k, ivr]) => {
                   const { total, booked, available } = ivStats(k);
                   return (
                     <div key={k} className="card" onClick={() => { setSelectedIv(k); setView("calendar"); }}>
