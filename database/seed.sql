@@ -80,6 +80,7 @@ INSERT INTO slots (interviewer_id, slot_date, slot_time) VALUES
 ('noelia', '2026-04-15', '15:30'),
 -- Jueves 16: 11am a 4pm (Max 3)
 ('noelia', '2026-04-16', '11:00'),
+('noelia', '2026-04-16', '12:00'),
 ('noelia', '2026-04-16', '13:30'),
 ('noelia', '2026-04-16', '15:00'),
 -- Viernes 17: 8:30 a 11:30 (Max 2)
