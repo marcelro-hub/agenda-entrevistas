@@ -45,3 +45,31 @@ CREATE TABLE IF NOT EXISTS bookings (
 
 CREATE INDEX IF NOT EXISTS idx_bookings_interviewer ON bookings(interviewer_id);
 CREATE INDEX IF NOT EXISTS idx_bookings_slot        ON bookings(slot_id);
+
+-- ============================================================
+-- Tabla 4: Grupos Focales
+-- Cada grupo tiene fecha, horario y capacidad máxima de 9
+-- ============================================================
+CREATE TABLE IF NOT EXISTS focus_groups (
+    id          SERIAL      PRIMARY KEY,
+    name        TEXT        NOT NULL,             -- "Grupo 1", "Grupo 2"...
+    group_date  DATE        NOT NULL,
+    start_time  TIME        NOT NULL,             -- 09:30
+    end_time    TIME        NOT NULL,             -- 11:00
+    max_slots   INTEGER     NOT NULL DEFAULT 9,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Tabla 5: Inscripciones a Grupos Focales
+-- UNIQUE(focus_group_id, slot_number) garantiza que un slot solo pueda tomarse UNA vez
+CREATE TABLE IF NOT EXISTS focus_group_registrations (
+    id                SERIAL      PRIMARY KEY,
+    focus_group_id    INTEGER     NOT NULL REFERENCES focus_groups(id) ON DELETE CASCADE,
+    slot_number       INTEGER     NOT NULL CHECK (slot_number BETWEEN 1 AND 9),
+    participant_name  TEXT        NOT NULL,
+    participant_email TEXT        NOT NULL,
+    registered_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(focus_group_id, slot_number)
+);
+
+CREATE INDEX IF NOT EXISTS idx_fg_reg_group ON focus_group_registrations(focus_group_id);

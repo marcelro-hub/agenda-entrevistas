@@ -39,8 +39,9 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 // ─── RUTAS ──────────────────────────────────────────────────────────────────
-app.use('/api/interviewers', require('./routes/interviewers'));
-app.use('/api/bookings',     require('./routes/bookings'));
+app.use('/api/interviewers',  require('./routes/interviewers'));
+app.use('/api/bookings',      require('./routes/bookings'));
+app.use('/api/focus-groups',  require('./routes/focusGroups'));
 
 // Health check — Railway lo usa para saber si el servicio está vivo
 app.get('/api/health', (_req, res) => {

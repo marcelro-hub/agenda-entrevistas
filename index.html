@@ -42,6 +42,13 @@ function formatDateShort(dateStr) {
   });
 }
 
+function formatDateMedium(dateStr) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("es-ES", {
+    weekday: "long", day: "numeric", month: "long",
+  });
+}
+
 function generateICS(iv, date, time, guestName, guestEmail) {
   const [y, mo, d] = date.split("-");
   const [h, min] = time.split(":");
@@ -83,6 +90,16 @@ function InterviewScheduler() {
   const [confirmedBooking, setConfirmedBooking] = useState(null);
   const [showAdmin, setShowAdmin] = useState(false);
   const remindersSet = useRef(new Set());
+
+  // ─── FOCUS GROUPS STATE ──────────────────────────────────────────────────
+  const [focusGroups, setFocusGroups] = useState([]);
+  const [focusGroupsReady, setFocusGroupsReady] = useState(false);
+  const [selectedFG, setSelectedFG] = useState(null);       // grupo seleccionado para modal
+  const [selectedFGSlot, setSelectedFGSlot] = useState(null); // slot number
+  const [showFGModal, setShowFGModal] = useState(false);
+  const [fgForm, setFgForm] = useState({ name: "", email: "" });
+  const [fgLoading, setFgLoading] = useState(false);
+  const [confirmedFG, setConfirmedFG] = useState(null);      // inscripción confirmada
 
   // Carga los entrevistadores y sus slots desde la API (se ejecuta una sola vez)
   useEffect(() => {
@@ -128,6 +145,27 @@ function InterviewScheduler() {
     return () => clearInterval(iv);
   }, [loadBookings]);
 
+  // ─── FOCUS GROUPS: Carga y refresco ────────────────────────────────────
+  const loadFocusGroups = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/focus-groups`);
+      if (!res.ok) throw new Error("Error cargando grupos focales");
+      const data = await res.json();
+      setFocusGroups(data || []);
+    } catch (err) {
+      console.error("Error cargando grupos focales:", err);
+      setFocusGroups([]);
+    } finally {
+      setFocusGroupsReady(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadFocusGroups();
+    const iv = setInterval(loadFocusGroups, 12000);
+    return () => clearInterval(iv);
+  }, [loadFocusGroups]);
+
   useEffect(() => {
     Object.entries(bookings).forEach(([key]) => {
       if (remindersSet.current.has(key)) return;
@@ -139,7 +177,7 @@ function InterviewScheduler() {
         remindersSet.current.add(key);
         setTimeout(() => {
           if (Notification.permission === "granted")
-            new Notification("⏰ Entrevista en 10 minutos", { body: `Con ${INTERVIEWERS[ivId]?.name} a las ${time}hs` });
+            new Notification("⏰ Entrevista en 10 minutos", { body: `Con ${interviewers[ivId]?.name} a las ${time}hs` });
         }, delay);
       }
     });
@@ -192,6 +230,51 @@ const handleBook = async () => {
     }
   };
 
+  // ─── FOCUS GROUPS: Inscripción ────────────────────────────────────────
+  const handleFGRegister = async () => {
+    if (!fgForm.name.trim() || !fgForm.email.trim() || !selectedFG || !selectedFGSlot) return;
+
+    setFgLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/focus-groups/${selectedFG.id}/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slot_number: selectedFGSlot,
+          name: fgForm.name.trim(),
+          email: fgForm.email.trim(),
+        }),
+      });
+
+      if (res.ok) {
+        setConfirmedFG({
+          group: selectedFG,
+          slotNumber: selectedFGSlot,
+          name: fgForm.name.trim(),
+          email: fgForm.email.trim(),
+        });
+        setView("focus-success");
+        setShowFGModal(false);
+        setFgForm({ name: "", email: "" });
+        loadFocusGroups();
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        if (res.status === 409) {
+          alert("Este espacio acaba de ser tomado. Elegí otro.");
+          setShowFGModal(false);
+          loadFocusGroups();
+        } else {
+          alert(errData.error || "Error al registrar. Intente de nuevo.");
+        }
+      }
+    } catch (err) {
+      console.error("Error en inscripción de grupo focal:", err);
+      alert("Hubo un problema de conexión.");
+    } finally {
+      setFgLoading(false);
+    }
+  };
+
   const downloadICS = () => {
     if (!confirmedBooking) return;
     const { iv: ivId, date, time, name, email } = confirmedBooking;
@@ -204,6 +287,11 @@ const handleBook = async () => {
   };
 
   const iv = selectedIv ? interviewers[selectedIv] : null;
+
+  // ─── Helpers para focus groups ─────────────────────────────────────────
+  const totalFGSlots = focusGroups.reduce((sum, g) => sum + g.max_slots, 0);
+  const totalFGOccupied = focusGroups.reduce((sum, g) => sum + g.occupied_slots.length, 0);
+  const totalFGAvailable = totalFGSlots - totalFGOccupied;
 
   const css = `
     @import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap');
@@ -292,7 +380,85 @@ const handleBook = async () => {
     .adm-hdr{background:#1A1A1A;color:#F7F4EF;font-size:0.67rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em}
     .badge{display:inline-block;padding:0.18rem 0.55rem;border-radius:20px;font-size:0.68rem;font-weight:600;margin-top:0.2rem}
     .b-nm{background:#FFF7ED;color:#9A3412}.b-jl{background:#EFF6FF;color:#1D4ED8}
-    @media(max-width:580px){.cards{grid-template-columns:1fr}.cal-row{grid-template-columns:90px 1fr}.adm-row{grid-template-columns:1fr 1fr}}
+
+    /* ─── FOCUS GROUPS STYLES ────────────────────────────────────────── */
+    .fg-banner{
+      margin-top:2rem;background:linear-gradient(135deg,#6366F1 0%,#8B5CF6 40%,#A855F7 100%);
+      border-radius:16px;padding:2rem 2.25rem;cursor:pointer;position:relative;overflow:hidden;
+      transition:transform 0.2s,box-shadow 0.2s;border:1px solid rgba(139,92,246,0.3);
+    }
+    .fg-banner:hover{transform:translateY(-3px);box-shadow:0 12px 32px rgba(99,102,241,0.35)}
+    .fg-banner::before{
+      content:'';position:absolute;top:-50%;right:-20%;width:300px;height:300px;
+      background:radial-gradient(circle,rgba(255,255,255,0.08) 0%,transparent 70%);
+      pointer-events:none;
+    }
+    .fg-banner-icon{font-size:2.5rem;margin-bottom:0.6rem}
+    .fg-banner-title{font-family:'Libre Baskerville',serif;font-size:1.45rem;color:#fff;margin-bottom:0.3rem;position:relative}
+    .fg-banner-desc{font-size:0.88rem;color:rgba(255,255,255,0.78);font-weight:300;margin-bottom:1.1rem;line-height:1.5;position:relative}
+    .fg-banner-pills{display:flex;gap:0.6rem;flex-wrap:wrap;position:relative}
+    .fg-banner-pill{
+      padding:0.3rem 0.8rem;border-radius:20px;font-size:0.75rem;font-weight:600;
+      background:rgba(255,255,255,0.18);color:#fff;backdrop-filter:blur(4px);
+    }
+    .fg-banner-cta{
+      display:inline-block;margin-top:1.2rem;padding:0.65rem 1.5rem;border-radius:8px;
+      background:rgba(255,255,255,0.95);color:#6366F1;font-weight:700;font-size:0.88rem;
+      font-family:'DM Sans',sans-serif;border:none;cursor:pointer;transition:all 0.15s;position:relative;
+    }
+    .fg-banner-cta:hover{background:#fff;transform:scale(1.03)}
+
+    .fg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.25rem;margin-top:1.5rem}
+    .fg-card{
+      background:#fff;border-radius:14px;padding:1.5rem;border:1px solid #E8E3DC;
+      box-shadow:0 2px 8px rgba(0,0,0,0.04);transition:transform 0.2s,box-shadow 0.2s;
+    }
+    .fg-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.09)}
+    .fg-card-hdr{display:flex;align-items:center;gap:0.75rem;margin-bottom:0.9rem}
+    .fg-card-icon{
+      width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+      font-size:1.1rem;font-weight:700;color:#fff;flex-shrink:0;
+    }
+    .fg-card-title{font-family:'Libre Baskerville',serif;font-size:1.05rem;color:#1A1A1A}
+    .fg-card-date{font-size:0.75rem;color:#6B6B6B;font-weight:300;text-transform:capitalize}
+    .fg-card-time{
+      display:flex;align-items:center;gap:0.4rem;font-size:0.82rem;color:#4B4B4B;
+      background:#F7F4EF;border-radius:6px;padding:0.45rem 0.75rem;margin-bottom:1rem;
+    }
+    .fg-card-avail{font-size:0.75rem;color:#6B6B6B;margin-bottom:0.65rem;font-weight:500}
+    .fg-slots-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem}
+    .fg-slot{
+      padding:0.55rem 0.4rem;border-radius:8px;border:none;font-size:0.8rem;font-weight:600;
+      cursor:pointer;transition:all 0.15s;font-family:'DM Sans',sans-serif;text-align:center;
+    }
+    .fg-slot-available{
+      background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;
+    }
+    .fg-slot-available:hover{opacity:0.85;transform:scale(1.05)}
+    .fg-slot-taken{
+      background:#F3F4F6;color:#C4C4C4;cursor:not-allowed;
+    }
+
+    /* Admin focus groups summary */
+    .fg-adm-section{margin-top:2rem}
+    .fg-adm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1rem;margin-top:1rem}
+    .fg-adm-card{
+      background:#fff;border-radius:12px;padding:1.25rem;border:1px solid #E8E3DC;
+      display:flex;flex-direction:column;gap:0.6rem;
+    }
+    .fg-adm-card-hdr{display:flex;align-items:center;justify-content:space-between}
+    .fg-adm-card-title{font-family:'Libre Baskerville',serif;font-size:1rem;color:#1A1A1A}
+    .fg-adm-badge{
+      padding:0.2rem 0.6rem;border-radius:20px;font-size:0.68rem;font-weight:600;
+    }
+    .fg-adm-badge-full{background:#ECFDF5;color:#047857}
+    .fg-adm-badge-partial{background:#FFF7ED;color:#9A3412}
+    .fg-adm-badge-empty{background:#F3F4F6;color:#6B7280}
+    .fg-adm-info{font-size:0.78rem;color:#6B6B6B;line-height:1.5}
+    .fg-adm-bar-bg{height:6px;background:#F3F4F6;border-radius:3px;overflow:hidden;margin-top:0.3rem}
+    .fg-adm-bar{height:100%;border-radius:3px;transition:width 0.4s ease}
+
+    @media(max-width:580px){.cards{grid-template-columns:1fr}.cal-row{grid-template-columns:90px 1fr}.adm-row{grid-template-columns:1fr 1fr}.fg-grid{grid-template-columns:1fr}.fg-adm-grid{grid-template-columns:1fr}}
   `;
 
   if (!storageReady || !interviewersReady) return (
@@ -313,6 +479,16 @@ const handleBook = async () => {
   function dateRange(slots) {
     const d = Object.keys(slots).sort(); return `${formatDateShort(d[0])} — ${formatDateShort(d[d.length-1])}`;
   }
+
+  // Focus group color palette
+  const fgColors = [
+    { bg: "linear-gradient(135deg,#6366F1,#818CF8)", accent: "#6366F1" },
+    { bg: "linear-gradient(135deg,#8B5CF6,#A78BFA)", accent: "#8B5CF6" },
+    { bg: "linear-gradient(135deg,#EC4899,#F472B6)", accent: "#EC4899" },
+    { bg: "linear-gradient(135deg,#F59E0B,#FBBF24)", accent: "#F59E0B" },
+    { bg: "linear-gradient(135deg,#10B981,#34D399)", accent: "#10B981" },
+    { bg: "linear-gradient(135deg,#3B82F6,#60A5FA)", accent: "#3B82F6" },
+  ];
 
   return (
     <>
@@ -358,6 +534,43 @@ const handleBook = async () => {
                     })}
                   </div>
                 }
+
+                {/* ─── ADMIN: RESUMEN GRUPOS FOCALES ────────────────────── */}
+                <div className="fg-adm-section">
+                  <h2 className="sec-title" style={{ marginTop: "1rem" }}>Grupos Focales — Resumen</h2>
+                  <p className="sec-sub">
+                    {focusGroups.length} grupos · {totalFGOccupied} inscritos de {totalFGSlots} · {totalFGAvailable} espacios disponibles
+                  </p>
+                  <div className="fg-adm-grid">
+                    {focusGroups.map((g, idx) => {
+                      const occupied = g.occupied_slots.length;
+                      const available = g.max_slots - occupied;
+                      const pct = Math.round((occupied / g.max_slots) * 100);
+                      const color = fgColors[idx % fgColors.length];
+                      let badgeClass = "fg-adm-badge-empty";
+                      let badgeText = "Vacío";
+                      if (occupied === g.max_slots) { badgeClass = "fg-adm-badge-full"; badgeText = "Completo"; }
+                      else if (occupied > 0) { badgeClass = "fg-adm-badge-partial"; badgeText = `${occupied}/${g.max_slots}`; }
+
+                      return (
+                        <div key={g.id} className="fg-adm-card">
+                          <div className="fg-adm-card-hdr">
+                            <div className="fg-adm-card-title">{g.name}</div>
+                            <span className={`fg-adm-badge ${badgeClass}`}>{badgeText}</span>
+                          </div>
+                          <div className="fg-adm-info">
+                            📅 {formatDateMedium(g.group_date)}<br/>
+                            🕐 {g.start_time} – {g.end_time} hs<br/>
+                            👥 {occupied} integrante{occupied !== 1 ? "s" : ""} · {available} espacio{available !== 1 ? "s" : ""} disponible{available !== 1 ? "s" : ""}
+                          </div>
+                          <div className="fg-adm-bar-bg">
+                            <div className="fg-adm-bar" style={{ width: `${pct}%`, background: color.accent }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             );
           })()}
@@ -388,9 +601,92 @@ const handleBook = async () => {
                   );
                 })}
               </div>
+
+              {/* ─── BANNER GRUPOS FOCALES ──────────────────────────────── */}
+              <div className="fg-banner" onClick={() => setView("focus-groups")}>
+                <div className="fg-banner-icon">👥</div>
+                <div className="fg-banner-title">Grupos Focales</div>
+                <div className="fg-banner-desc">
+                  Participe en una sesión de grupo focal para la Estrategia Institucional 2027-2031.
+                  Seleccione el grupo y horario que mejor se ajuste a su disponibilidad.
+                </div>
+                <div className="fg-banner-pills">
+                  <span className="fg-banner-pill">6 grupos disponibles</span>
+                  <span className="fg-banner-pill">9 espacios por grupo</span>
+                  <span className="fg-banner-pill">{totalFGAvailable} espacio{totalFGAvailable !== 1 ? "s" : ""} libre{totalFGAvailable !== 1 ? "s" : ""}</span>
+                </div>
+                <button className="fg-banner-cta">Inscribirse →</button>
+              </div>
+
               <p style={{ marginTop: "1.75rem", fontSize: "0.75rem", color: "#9A9A9A", textAlign: "center" }}>
                  Los horarios disponibles son únicos.
               </p>
+            </div>
+          )}
+
+          {/* ─── FOCUS GROUPS VIEW ─────────────────────────────────────── */}
+          {!showAdmin && view === "focus-groups" && (
+            <div>
+              <div style={{ marginBottom: "1.5rem" }}>
+                <h2 className="sec-title">Grupos Focales</h2>
+                <p className="sec-sub">
+                  Seleccione un espacio disponible en el grupo de su preferencia. Cada grupo tiene un máximo de 9 participantes.
+                </p>
+                <div className="legend">
+                  <span><span className="ldot" style={{ background: "#6366F1" }} />Disponible</span>
+                  <span><span className="ldot" style={{ background: "#D1D5DB" }} />Ocupado</span>
+                </div>
+              </div>
+              <div className="fg-grid">
+                {focusGroups.map((g, idx) => {
+                  const color = fgColors[idx % fgColors.length];
+                  const available = g.max_slots - g.occupied_slots.length;
+                  const allTaken = available === 0;
+                  return (
+                    <div key={g.id} className="fg-card" style={allTaken ? { opacity: 0.55 } : {}}>
+                      <div className="fg-card-hdr">
+                        <div className="fg-card-icon" style={{ background: color.bg }}>
+                          {idx + 1}
+                        </div>
+                        <div>
+                          <div className="fg-card-title">{g.name}</div>
+                          <div className="fg-card-date">{formatDateMedium(g.group_date)}</div>
+                        </div>
+                      </div>
+                      <div className="fg-card-time">
+                        🕐 {g.start_time} – {g.end_time} hs (Bolivia)
+                      </div>
+                      <div className="fg-card-avail">
+                        {allTaken
+                          ? "❌ Grupo completo"
+                          : `✅ ${available} espacio${available !== 1 ? "s" : ""} disponible${available !== 1 ? "s" : ""}`
+                        }
+                      </div>
+                      <div className="fg-slots-grid">
+                        {Array.from({ length: g.max_slots }, (_, i) => i + 1).map(slotNum => {
+                          const taken = g.occupied_slots.includes(slotNum);
+                          return (
+                            <button
+                              key={slotNum}
+                              className={`fg-slot ${taken ? "fg-slot-taken" : "fg-slot-available"}`}
+                              disabled={taken}
+                              onClick={() => {
+                                if (!taken) {
+                                  setSelectedFG(g);
+                                  setSelectedFGSlot(slotNum);
+                                  setShowFGModal(true);
+                                }
+                              }}
+                            >
+                              {taken ? `— —` : `Espacio ${slotNum}`}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 
@@ -455,7 +751,7 @@ const handleBook = async () => {
             </div>
           )}
 
-          {/* --- PANTALLA DE ÉXITO (CONFIRMACIÓN) --- */}
+          {/* --- PANTALLA DE ÉXITO (ENTREVISTAS) --- */}
           {!showAdmin && view === "success" && (
             <div className="scard" style={{ textAlign: "center" }}>
               <div className="s-icon">✅</div>
@@ -473,7 +769,7 @@ const handleBook = async () => {
                   <div className="drow">
                     <span className="dlbl">Entrevistador:</span>
                     <span className="dval" style={{ textTransform: "capitalize" }}>
-                      {INTERVIEWERS[confirmedBooking.iv]?.name || confirmedBooking.iv}
+                      {interviewers[confirmedBooking.iv]?.name || confirmedBooking.iv}
                     </span>
                   </div>
                   <div className="drow">
@@ -497,6 +793,45 @@ const handleBook = async () => {
                 setView("home"); 
                 setConfirmedBooking(null); 
                 setSelectedIv(null); 
+              }}>
+                Volver al inicio
+              </button>
+            </div>
+          )}
+
+          {/* --- PANTALLA DE ÉXITO (GRUPOS FOCALES) --- */}
+          {!showAdmin && view === "focus-success" && confirmedFG && (
+            <div className="scard" style={{ textAlign: "center" }}>
+              <div className="s-icon">✅</div>
+              <div className="s-title">Inscripción Confirmada</div>
+              <p style={{ color: "#6B6B6B", fontSize: "0.9rem", marginBottom: "1.5rem" }}>
+                Se ha registrado exitosamente en el grupo focal. Recibirá instrucciones adicionales por correo electrónico.
+              </p>
+
+              <div style={{ textAlign: "left", marginBottom: "1.5rem" }}>
+                <div className="drow">
+                  <span className="dlbl">Participante:</span>
+                  <span className="dval">{confirmedFG.name}</span>
+                </div>
+                <div className="drow">
+                  <span className="dlbl">Grupo:</span>
+                  <span className="dval">{confirmedFG.group.name}</span>
+                </div>
+                <div className="drow">
+                  <span className="dlbl">Fecha:</span>
+                  <span className="dval" style={{ textTransform: "capitalize" }}>
+                    {formatDateMedium(confirmedFG.group.group_date)}
+                  </span>
+                </div>
+                <div className="drow">
+                  <span className="dlbl">Horario:</span>
+                  <span className="dval">{confirmedFG.group.start_time} – {confirmedFG.group.end_time} hs</span>
+                </div>
+              </div>
+
+              <button className="btn-s" onClick={() => {
+                setView("home");
+                setConfirmedFG(null);
               }}>
                 Volver al inicio
               </button>
@@ -526,9 +861,8 @@ const handleBook = async () => {
         
       </div>
 
-
         
-      {/* MODAL */}
+      {/* MODAL ENTREVISTAS */}
       {showModal && slot && iv && (
         <div className="modal-bg" onClick={e => e.target === e.currentTarget && !loading && setShowModal(false)}>
           <div className="modal">
@@ -555,6 +889,41 @@ const handleBook = async () => {
                 style={{ background: (!form.name.trim() || !form.email.trim() || loading) ? "#D1D5DB" : iv.accentColor }}
                 onClick={handleBook}>
                 {loading ? "Reservando..." : "Confirmar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL GRUPOS FOCALES */}
+      {showFGModal && selectedFG && selectedFGSlot && (
+        <div className="modal-bg" onClick={e => e.target === e.currentTarget && !fgLoading && setShowFGModal(false)}>
+          <div className="modal">
+            <h2 className="m-title">Inscripción a Grupo Focal</h2>
+            <p style={{ fontSize: "0.82rem", color: "#6B6B6B", marginTop: "0.2rem" }}>Completá tus datos para inscribirte</p>
+            <div className="m-info" style={{ borderLeftColor: "#6366F1" }}>
+              <strong style={{ color: "#6366F1" }}>{selectedFG.name}</strong><br />
+              <span style={{ color: "#4B4B4B", fontSize: "0.82rem" }}>
+                📆 {formatDateMedium(selectedFG.group_date)} &nbsp; 🕐 {selectedFG.start_time} – {selectedFG.end_time} hs
+              </span>
+            </div>
+            <div style={{ marginBottom: "0.9rem" }}>
+              <label className="flabel">Nombre completo</label>
+              <input className="finput" type="text" placeholder="Tu nombre y apellido" value={fgForm.name}
+                onChange={e => setFgForm({ ...fgForm, name: e.target.value })} />
+            </div>
+            <div>
+              <label className="flabel">Correo electrónico</label>
+              <input className="finput" type="email" placeholder="tu@correo.com" value={fgForm.email}
+                onChange={e => setFgForm({ ...fgForm, email: e.target.value })} />
+              <p className="fhint">Usaremos este correo para contactarte sobre el grupo focal</p>
+            </div>
+            <div className="m-acts">
+              <button className="btn-x" onClick={() => setShowFGModal(false)} disabled={fgLoading}>Cancelar</button>
+              <button className="btn-ok" disabled={fgLoading || !fgForm.name.trim() || !fgForm.email.trim()}
+                style={{ background: (!fgForm.name.trim() || !fgForm.email.trim() || fgLoading) ? "#D1D5DB" : "#6366F1" }}
+                onClick={handleFGRegister}>
+                {fgLoading ? "Inscribiéndose..." : "Confirmar inscripción"}
               </button>
             </div>
           </div>
