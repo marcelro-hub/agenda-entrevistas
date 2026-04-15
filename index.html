@@ -84,6 +84,15 @@ function InterviewScheduler() {
   const [showAdmin, setShowAdmin] = useState(false);
   const remindersSet = useRef(new Set());
 
+  // Estado para Grupos Focales
+  const [focalBookings, setFocalBookings] = useState({});
+  const [showFocalModal, setShowFocalModal] = useState(false);
+  const [focalSlot, setFocalSlot] = useState(null);
+  const [showFocalForm, setShowFocalForm] = useState(false);
+  const [focalForm, setFocalForm] = useState({ name: "", email: "" });
+  const [focalLoading, setFocalLoading] = useState(false);
+  const [focalSuccess, setFocalSuccess] = useState(false);
+
   // Carga los entrevistadores y sus slots desde la API (se ejecuta una sola vez)
   useEffect(() => {
     fetch(`${API_BASE}/interviewers`)
@@ -127,6 +136,20 @@ function InterviewScheduler() {
     const iv = setInterval(loadBookings, 12000);
     return () => clearInterval(iv);
   }, [loadBookings]);
+
+  const loadFocalBookings = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/focal`);
+      if (!res.ok) throw new Error();
+      setFocalBookings(await res.json());
+    } catch { setFocalBookings({}); }
+  }, []);
+
+  useEffect(() => {
+    loadFocalBookings();
+    const fiv = setInterval(loadFocalBookings, 12000);
+    return () => clearInterval(fiv);
+  }, [loadFocalBookings]);
 
   useEffect(() => {
     Object.entries(bookings).forEach(([key]) => {
@@ -391,6 +414,21 @@ const handleBook = async () => {
               <p style={{ marginTop: "1.75rem", fontSize: "0.75rem", color: "#9A9A9A", textAlign: "center" }}>
                  Los horarios disponibles son únicos.
               </p>
+              <div style={{ marginTop: "1.5rem", textAlign: "center" }}>
+                <button
+                  onClick={() => { setShowFocalModal(true); setShowFocalForm(false); setFocalSuccess(false); setFocalSlot(null); setFocalForm({ name: "", email: "" }); }}
+                  style={{
+                    background: "#fff", border: "1.5px solid #E8E3DC", borderRadius: "10px",
+                    padding: "1rem 1.5rem", cursor: "pointer", fontFamily: "'DM Sans',sans-serif",
+                    fontSize: "0.875rem", color: "#1A1A1A", transition: "box-shadow 0.2s",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.06)"
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.1)"}
+                  onMouseLeave={e => e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06)"}
+                >
+                  👥 Inscripción a Grupos Focales
+                </button>
+              </div>
             </div>
           )}
 
@@ -557,6 +595,107 @@ const handleBook = async () => {
                 {loading ? "Reservando..." : "Confirmar"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL GRUPOS FOCALES — Grilla */}
+      {showFocalModal && !showFocalForm && (
+        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setShowFocalModal(false)}>
+          <div className="modal" style={{ maxWidth: "560px" }}>
+            <h2 className="m-title">Grupos Focales</h2>
+            <p style={{ fontSize: "0.82rem", color: "#6B6B6B", marginTop: "0.2rem", marginBottom: "1rem" }}>
+              Seleccioná un cupo disponible en uno de los 6 grupos
+            </p>
+            {[1,2,3,4,5,6].map(g => (
+              <div key={g} style={{ marginBottom: "0.85rem" }}>
+                <div style={{ fontSize: "0.72rem", fontWeight: 600, color: "#4B4B4B",
+                  textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "0.4rem" }}>
+                  Grupo {g}
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
+                  {[1,2,3,4,5,6,7,8,9].map(s => {
+                    const taken = !!focalBookings[`${g}|${s}`];
+                    return (
+                      <button key={s}
+                        className={`slot ${taken ? "slot-t" : "slot-a"}`}
+                        style={taken ? {} : { background: "#1D4ED8" }}
+                        disabled={taken}
+                        onClick={() => { setFocalSlot({ group: g, slot: s }); setFocalForm({ name: "", email: "" }); setShowFocalForm(true); }}>
+                        {s} {taken ? "✓" : ""}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+            <div className="m-acts">
+              <button className="btn-x" onClick={() => setShowFocalModal(false)}>Cerrar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL GRUPOS FOCALES — Formulario / Éxito */}
+      {showFocalModal && showFocalForm && focalSlot && (
+        <div className="modal-bg">
+          <div className="modal">
+            {focalSuccess ? (
+              <div style={{ textAlign: "center", padding: "0.5rem 0" }}>
+                <div style={{ fontSize: "2.5rem", marginBottom: "0.75rem" }}>✅</div>
+                <h2 className="m-title" style={{ marginBottom: "0.75rem" }}>¡Registro exitoso!</h2>
+                <p style={{ fontSize: "0.875rem", color: "#4B4B4B", lineHeight: 1.55 }}>
+                  Gracias por registrarse, el enlace de la reunión de los grupos focales será enviado una vez que el grupo esté completo.
+                </p>
+                <button className="btn-ok"
+                  style={{ background: "#1D4ED8", marginTop: "1.25rem", width: "100%", padding: "0.7rem" }}
+                  onClick={() => { setShowFocalModal(false); setShowFocalForm(false); setFocalSuccess(false); setFocalSlot(null); setFocalForm({ name: "", email: "" }); }}>
+                  Cerrar
+                </button>
+              </div>
+            ) : (
+              <>
+                <h2 className="m-title">Confirmar inscripción</h2>
+                <p style={{ fontSize: "0.82rem", color: "#6B6B6B", marginTop: "0.2rem" }}>
+                  Completá tus datos para el Grupo {focalSlot.group} — Cupo {focalSlot.slot}
+                </p>
+                <div className="m-info" style={{ borderLeftColor: "#1D4ED8" }}>
+                  <strong style={{ color: "#1D4ED8" }}>Grupo {focalSlot.group}</strong> · Cupo {focalSlot.slot}
+                </div>
+                <div style={{ marginBottom: "0.9rem" }}>
+                  <label className="flabel">Nombre completo</label>
+                  <input className="finput" type="text" placeholder="Tu nombre y apellido"
+                    value={focalForm.name} onChange={e => setFocalForm({ ...focalForm, name: e.target.value })} />
+                </div>
+                <div>
+                  <label className="flabel">Correo electrónico</label>
+                  <input className="finput" type="email" placeholder="tu@correo.com"
+                    value={focalForm.email} onChange={e => setFocalForm({ ...focalForm, email: e.target.value })} />
+                </div>
+                <div className="m-acts">
+                  <button className="btn-x" onClick={() => setShowFocalForm(false)} disabled={focalLoading}>← Volver</button>
+                  <button className="btn-ok"
+                    disabled={focalLoading || !focalForm.name.trim() || !focalForm.email.trim()}
+                    style={{ background: (!focalForm.name.trim() || !focalForm.email.trim() || focalLoading) ? "#D1D5DB" : "#1D4ED8" }}
+                    onClick={async () => {
+                      setFocalLoading(true);
+                      try {
+                        const res = await fetch(`${API_BASE}/focal`, {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ group_number: focalSlot.group, slot_number: focalSlot.slot, name: focalForm.name, email: focalForm.email })
+                        });
+                        if (res.ok) { setFocalSuccess(true); loadFocalBookings(); }
+                        else if (res.status === 409) { alert("Este cupo acaba de ser tomado. Elegí otro."); setShowFocalForm(false); loadFocalBookings(); }
+                        else { alert("Error al registrar. Intente de nuevo."); }
+                      } catch { alert("Problema de conexión."); }
+                      finally { setFocalLoading(false); }
+                    }}>
+                    {focalLoading ? "Registrando..." : "Confirmar"}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
