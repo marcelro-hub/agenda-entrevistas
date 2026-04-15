@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Agenda de Entrevistas
-</title>
-  
+  <title>Agenda de Participación Interna – Estrategia Institucional 2027–2031</title>
+
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -14,19 +13,20 @@
   <div id="root"></div>
 
   <script type="text/babel">
-    // 3. Extraemos las herramientas de React (Reemplaza a tu línea "import...")
     const { useState, useEffect, useRef, useCallback } = React;
-
-    // --- PEGA AQUÍ TODO TU CÓDIGO ---
-    // (Desde la variable const DB_URL = "..." hasta la última llave } de tu componente)
-  
 
 const DURATION_MIN = 60;
 
-// ⚠️ IMPORTANTE: Después de hacer deploy en Railway, reemplazá este valor
-// con la URL real de tu servicio, ej: "https://agenda-entrevistas-api.railway.app/api"
 const API_BASE = "https://exquisite-adventure-production-7366.up.railway.app/api";
 
+const FOCAL_SCHEDULE = {
+  1: { day: "Viernes 24 de abril",   hours: "9:30 – 11:00" },
+  2: { day: "Viernes 24 de abril",   hours: "14:00 – 15:30" },
+  3: { day: "Lunes 27 de abril",     hours: "9:00 – 10:30" },
+  4: { day: "Lunes 27 de abril",     hours: "14:00 – 15:30" },
+  5: { day: "Martes 28 de abril",    hours: "9:00 – 10:30" },
+  6: { day: "Miércoles 29 de abril", hours: "9:00 – 10:30" },
+};
 
 function formatDate(dateStr) {
   const [y, m, d] = dateStr.split("-").map(Number);
@@ -76,12 +76,11 @@ function InterviewScheduler() {
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ name: "", email: "" });
   const [bookings, setBookings] = useState({});
-  const [interviewers, setInterviewers] = useState({});      // Antes era INTERVIEWERS (hardcodeado)
+  const [interviewers, setInterviewers] = useState({});
   const [interviewersReady, setInterviewersReady] = useState(false);
   const [loading, setLoading] = useState(false);
   const [storageReady, setStorageReady] = useState(false);
   const [confirmedBooking, setConfirmedBooking] = useState(null);
-  const [showAdmin, setShowAdmin] = useState(false);
   const remindersSet = useRef(new Set());
 
   // Estado para Grupos Focales
@@ -93,7 +92,6 @@ function InterviewScheduler() {
   const [focalLoading, setFocalLoading] = useState(false);
   const [focalSuccess, setFocalSuccess] = useState(false);
 
-  // Carga los entrevistadores y sus slots desde la API (se ejecuta una sola vez)
   useEffect(() => {
     fetch(`${API_BASE}/interviewers`)
       .then(r => { if (!r.ok) throw new Error("Error cargando entrevistadores"); return r.json(); })
@@ -102,22 +100,16 @@ function InterviewScheduler() {
       .finally(() => setInterviewersReady(true));
   }, []);
 
-  // Carga las reservas desde la API — se refresca cada 12 segundos
   const loadBookings = useCallback(async () => {
     try {
       const res = await fetch(`${API_BASE}/bookings`);
       if (!res.ok) throw new Error("Error en red");
       const data = await res.json();
-      
       const objBookings = {};
       if (data && Array.isArray(data)) {
         data.forEach(fila => {
           if (fila && fila.key) {
-            objBookings[fila.key] = { 
-              name: fila.name || "Sin nombre", 
-              email: fila.email || "", 
-              at: fila.at || "" 
-            };
+            objBookings[fila.key] = { name: fila.name || "Sin nombre", email: fila.email || "", at: fila.at || "" };
           }
         });
       }
@@ -129,7 +121,7 @@ function InterviewScheduler() {
       setStorageReady(true);
     }
   }, []);
-  
+
   useEffect(() => {
     loadBookings();
     if (typeof Notification !== "undefined") Notification.requestPermission();
@@ -162,35 +154,26 @@ function InterviewScheduler() {
         remindersSet.current.add(key);
         setTimeout(() => {
           if (Notification.permission === "granted")
-            new Notification("⏰ Entrevista en 10 minutos", { body: `Con ${INTERVIEWERS[ivId]?.name} a las ${time}hs` });
+            new Notification("⏰ Entrevista en 10 minutos", { body: `Con ${interviewers[ivId]?.name} a las ${time}hs` });
         }, delay);
       }
     });
   }, [bookings]);
 
-const handleBook = async () => {
+  const handleBook = async () => {
     if (!form.name.trim() || !form.email.trim() || !slot || !selectedIv) return;
     const key = `${selectedIv}|${slot.date}|${slot.time}`;
     if (bookings[key]) { alert("Este horario acaba de ser tomado. Elegí otro."); setShowModal(false); return; }
-    
     setLoading(true);
     try {
       const nb = { name: form.name.trim(), email: form.email.trim(), at: new Date().toISOString() };
-      
       const res = await fetch(`${API_BASE}/bookings`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ key: key, ...nb }),
       });
-
       if (res.ok) {
-        const newBooking = {
-          iv: selectedIv,               // Guardamos el ID del entrevistador
-          date: slot.date,
-          time: slot.time,
-          name: form.name,
-          email: form.email
-        };
+        const newBooking = { iv: selectedIv, date: slot.date, time: slot.time, name: form.name, email: form.email };
         setConfirmedBooking(newBooking);
         setView("success");
         setShowModal(false);
@@ -206,7 +189,6 @@ const handleBook = async () => {
           alert(errData.error || "Error al guardar en la base de datos. Intente de nuevo.");
         }
       }
-
     } catch (err) {
       console.error("Error en el registro:", err);
       alert("Hubo un problema de conexión.");
@@ -218,7 +200,6 @@ const handleBook = async () => {
   const downloadICS = () => {
     if (!confirmedBooking) return;
     const { iv: ivId, date, time, name, email } = confirmedBooking;
-    // Resolvemos el ID del entrevistador al objeto completo (necesario para generateICS)
     const ivObj = interviewers[ivId];
     if (!ivObj) return;
     const blob = new Blob([generateICS(ivObj, date, time, name, email)], { type: "text/calendar;charset=utf-8" });
@@ -231,21 +212,14 @@ const handleBook = async () => {
   const css = `
     @import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap');
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    
-    /* --- INICIO DE CAMBIOS PARA FOOTER ADHERIDO --- */
     .app { display: flex; flex-direction: column; min-height: 100vh; background: #F7F4EF; font-family: 'DM Sans',sans-serif; color: #1A1A1A; }
     .main { flex-grow: 1; max-width: 900px; margin: 0 auto; padding: 2rem 1.25rem; width: 100%; }
-    
-    /* --- ESTILOS DEL FOOTER COMPACTO Y ADHERIDO --- */
-    /* --- ESTILOS DEL FOOTER ULTRA COMPACTO --- */
     .footer { background: #1A1A1A; color: rgba(247,244,239,0.6); padding: 0.4rem 1rem; margin-top: 1rem; border-top: 1px solid rgba(247,244,239,0.1); text-align: center; }
     .footer-content { max-width: 900px; margin: 0 auto; }
     .footer-title { font-family: 'Libre Baskerville', serif; color: #F7F4EF; font-size: 0.75rem; margin-bottom: 0rem; }
     .footer-email { color: #F7F4EF; text-decoration: none; font-weight: 500; font-size: 0.65rem; border-bottom: 1px solid rgba(247,244,239,0.3); padding-bottom: 1px; transition: all 0.2s; }
     .footer-email:hover { border-bottom-color: #F7F4EF; opacity: 0.8; }
     .footer-copyright { font-size: 0.55rem; margin-top: 0.2rem; opacity: 0.4; line-height: 1.1; }
-    /* --- FIN DE CAMBIOS PARA FOOTER --- */
-
     .hdr{background:#1A1A1A;color:#F7F4EF;padding:1.1rem 1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem}
     .hdr h1{font-family:'Libre Baskerville',serif;font-size:1.15rem;letter-spacing:-0.02em}
     .hdr-sub{font-size:0.72rem;opacity:0.45;margin-top:0.1rem;font-weight:300}
@@ -267,8 +241,18 @@ const handleBook = async () => {
     .pill-a{background:#ECFDF5;color:#047857}
     .pill-t{background:#F3F4F6;color:#6B7280}
     .pill-p{background:#FFF7ED;color:#9A3412;font-size:0.68rem}
+    .pill-g{background:#F0FDF4;color:#166534;font-size:0.68rem}
     .card-cta{width:100%;padding:0.6rem;border:none;border-radius:8px;color:#fff;font-weight:600;font-size:0.83rem;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity 0.15s}
     .card-cta:hover{opacity:0.87}
+    .focal-card{background:#fff;border-radius:12px;overflow:hidden;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.06);transition:transform 0.2s,box-shadow 0.2s;border:1px solid #BBF7D0;margin-bottom:1.75rem}
+    .focal-card:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,0.11)}
+    .focal-card-hdr{height:88px;display:flex;align-items:center;padding:1.25rem;gap:0.9rem;background:linear-gradient(135deg,#16A34A 0%,#15803D 100%)}
+    .focal-ini{width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.22);display:flex;align-items:center;justify-content:center;font-size:1.4rem;border:2px solid rgba(255,255,255,0.28);flex-shrink:0}
+    .focal-card-name{font-family:'Libre Baskerville',serif;font-size:1.05rem;color:#fff;line-height:1.2}
+    .focal-card-sub{font-size:0.72rem;color:rgba(255,255,255,0.7);margin-top:0.15rem}
+    .focal-card-body{padding:1.1rem 1.25rem 1.35rem}
+    .focal-cta{width:100%;padding:0.6rem;border:none;border-radius:8px;color:#fff;font-weight:600;font-size:0.83rem;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity 0.15s;background:#16A34A}
+    .focal-cta:hover{opacity:0.87}
     .cal-hdr{display:flex;align-items:center;gap:0.9rem;margin-bottom:1.75rem}
     .cal-ini{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:0.88rem;flex-shrink:0}
     .legend{display:flex;gap:1.1rem;margin-bottom:1.1rem;font-size:0.75rem;color:#6B6B6B}
@@ -307,14 +291,13 @@ const handleBook = async () => {
     .btn-p:hover{opacity:0.85}
     .btn-s{width:100%;padding:0.7rem;border:1.5px solid #E8E3DC;border-radius:8px;background:#fff;font-size:0.85rem;cursor:pointer;font-family:'DM Sans',sans-serif;color:#4B4B4B;margin-top:0.65rem;transition:border-color 0.15s}
     .btn-s:hover{border-color:#9A9A9A}
-    .estatus{display:flex;align-items:center;gap:0.45rem;font-size:0.78rem;padding:0.55rem 0.85rem;border-radius:8px;margin-bottom:1rem}
-    .e-send{background:#FFF7ED;color:#9A3412}.e-ok{background:#ECFDF5;color:#047857}.e-err{background:#FEF2F2;color:#B91C1C}
     .adm-tbl{background:#fff;border-radius:12px;overflow:hidden;border:1px solid #E8E3DC}
     .adm-row{display:grid;grid-template-columns:1fr 1fr 110px 80px;padding:0.75rem 1.1rem;border-bottom:1px solid #F3F0EA;font-size:0.82rem;align-items:center;gap:0.5rem}
     .adm-row:last-child{border-bottom:none}
     .adm-hdr{background:#1A1A1A;color:#F7F4EF;font-size:0.67rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em}
     .badge{display:inline-block;padding:0.18rem 0.55rem;border-radius:20px;font-size:0.68rem;font-weight:600;margin-top:0.2rem}
     .b-nm{background:#FFF7ED;color:#9A3412}.b-jl{background:#EFF6FF;color:#1D4ED8}
+    .divider{border:none;border-top:1.5px solid #E8E3DC;margin:1.75rem 0}
     @media(max-width:580px){.cards{grid-template-columns:1fr}.cal-row{grid-template-columns:90px 1fr}.adm-row{grid-template-columns:1fr 1fr}}
   `;
 
@@ -327,7 +310,6 @@ const handleBook = async () => {
     </>
   );
 
-  // Stat helpers
   function ivStats(k) {
     const ivr = interviewers[k]; let total = 0, booked = 0;
     Object.entries(ivr.slots).forEach(([dt, ts]) => { total += ts.length; ts.forEach(t => { if (bookings[`${k}|${dt}|${t}`]) booked++; }); });
@@ -337,65 +319,68 @@ const handleBook = async () => {
     const d = Object.keys(slots).sort(); return `${formatDateShort(d[0])} — ${formatDateShort(d[d.length-1])}`;
   }
 
+  const totalFocalSlots = 6 * 9;
+  const takenFocalSlots = Object.keys(focalBookings).length;
+  const availableFocalSlots = totalFocalSlots - takenFocalSlots;
+
   return (
     <>
       <style>{css}</style>
       <div className="app">
         <header className="hdr">
           <div>
-            <h1>Agenda de Entrevistas Internas - Estrategia Institucional 2027-2031</h1>
+            <h1>Agenda de Participación Interna – Estrategia Institucional 2027–2031</h1>
             <div className="hdr-sub">Reserve su horario · Teams · Bolivia UTC-4</div>
           </div>
           <div className="hdr-btns">
-            {view !== "home" && !showAdmin && (
+            {view !== "home" && (
               <button className="btn-g" onClick={() => { setView("home"); setSelectedIv(null); }}>← Inicio</button>
             )}
-            <button className="btn-g" onClick={() => { setShowAdmin(!showAdmin); if (!showAdmin) { setView("home"); setSelectedIv(null); } }}>
-              {showAdmin ? "📅 Calendario" : "📋 Reservas"}
-            </button>
           </div>
         </header>
 
         <main className="main">
-          {/* ADMIN */}
-          {showAdmin && (() => {
-            const rows = Object.entries(bookings).map(([k, d]) => { const [id, date, time] = k.split("|"); return { id, date, time, ...d }; }).sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
-            return (
-              <div>
-                <h2 className="sec-title">Reservas registradas</h2>
-                <p className="sec-sub">{rows.length} de ~23 entrevistas agendadas</p>
-                {rows.length === 0
-                  ? <div style={{ background: "#fff", borderRadius: "12px", padding: "2.5rem", textAlign: "center", color: "#9A9A9A", border: "1px solid #E8E3DC" }}>Aún no hay reservas</div>
-                  : <div className="adm-tbl">
-                    <div className="adm-row adm-hdr"><span>Entrevistado/a</span><span>Email</span><span>Fecha</span><span>Hora</span></div>
-                    {rows.map((r, i) => {
-                      const ivr = interviewers[r.id];
-                      return (
-                        <div key={i} className="adm-row">
-                          <div><div style={{ fontWeight: 500 }}>{r.name}</div><span className={`badge ${r.id === "noelia" ? "b-nm" : "b-jl"}`}>{ivr?.name}</span></div>
-                          <div style={{ color: "#6B6B6B", fontSize: "0.77rem", wordBreak: "break-all" }}>{r.email}</div>
-                          <div style={{ fontSize: "0.78rem", textTransform: "capitalize" }}>{formatDateShort(r.date)}</div>
-                          <div style={{ fontWeight: 600, color: ivr?.accentColor }}>{r.time} hs</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                }
-              </div>
-            );
-          })()}
 
           {/* HOME */}
-          {!showAdmin && view === "home" && (
+          {view === "home" && (
             <div>
-              <h2 className="sec-title">Selecciona un entrevistador</h2>
+              {/* SECCIÓN GRUPOS FOCALES */}
+              <h2 className="sec-title">Grupos Focales</h2>
+              <p className="sec-sub">Participe en uno de los 6 grupos focales según disponibilidad de cupos.</p>
+              <div
+                className="focal-card"
+                onClick={() => { setShowFocalModal(true); setShowFocalForm(false); setFocalSuccess(false); setFocalSlot(null); setFocalForm({ name: "", email: "" }); }}
+              >
+                <div className="focal-card-hdr">
+                  <div className="focal-ini">👥</div>
+                  <div>
+                    <div className="focal-card-name">Inscripción a Grupos Focales</div>
+                    <div className="focal-card-sub">6 grupos · 9 cupos por grupo · Microsoft Teams</div>
+                  </div>
+                </div>
+                <div className="focal-card-body">
+                  <div className="pills">
+                    <span className={`pill ${availableFocalSlots > 0 ? "pill-a" : "pill-t"}`}>{availableFocalSlots} cupo{availableFocalSlots !== 1 ? "s" : ""} disponible{availableFocalSlots !== 1 ? "s" : ""}</span>
+                    {takenFocalSlots > 0 && <span className="pill pill-t">{takenFocalSlots} reservado{takenFocalSlots !== 1 ? "s" : ""}</span>}
+                    <span className="pill pill-g">24 – 29 de abril</span>
+                  </div>
+                  <button className="focal-cta">Ver grupos y horarios →</button>
+                </div>
+              </div>
+
+              <hr className="divider" />
+
+              {/* SECCIÓN ENTREVISTAS INDIVIDUALES */}
+              <h2 className="sec-title">Entrevistas Individuales</h2>
               <p className="sec-sub">Elija un entrevistador según su disponibilidad horaria.</p>
               <div className="cards">
                 {Object.entries(interviewers).map(([k, ivr]) => {
                   const { total, booked, available } = ivStats(k);
+                  const greyGradient = "linear-gradient(135deg,#6B7280 0%,#4B5563 100%)";
+                  const greyAccent = "#6B7280";
                   return (
                     <div key={k} className="card" onClick={() => { setSelectedIv(k); setView("calendar"); }}>
-                      <div className="card-hdr" style={{ background: ivr.bgGradient }}>
+                      <div className="card-hdr" style={{ background: greyGradient }}>
                         <div className="ini">{ivr.initials}</div>
                         <div><div className="card-name">{ivr.name}</div><div className="card-dur">{DURATION_MIN} min · Microsoft Teams</div></div>
                       </div>
@@ -405,45 +390,30 @@ const handleBook = async () => {
                           {booked > 0 && <span className="pill pill-t">{booked} reservado{booked !== 1 ? "s" : ""}</span>}
                           <span className="pill pill-p">{dateRange(ivr.slots)}</span>
                         </div>
-                        <button className="card-cta" style={{ background: ivr.accentColor }}>Ver horarios →</button>
+                        <button className="card-cta" style={{ background: greyAccent }}>Ver horarios →</button>
                       </div>
                     </div>
                   );
                 })}
               </div>
               <p style={{ marginTop: "1.75rem", fontSize: "0.75rem", color: "#9A9A9A", textAlign: "center" }}>
-                 Los horarios disponibles son únicos.
+                Los horarios disponibles son únicos.
               </p>
-              <div style={{ marginTop: "1.5rem", textAlign: "center" }}>
-                <button
-                  onClick={() => { setShowFocalModal(true); setShowFocalForm(false); setFocalSuccess(false); setFocalSlot(null); setFocalForm({ name: "", email: "" }); }}
-                  style={{
-                    background: "#fff", border: "1.5px solid #E8E3DC", borderRadius: "10px",
-                    padding: "1rem 1.5rem", cursor: "pointer", fontFamily: "'DM Sans',sans-serif",
-                    fontSize: "0.875rem", color: "#1A1A1A", transition: "box-shadow 0.2s",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.06)"
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.1)"}
-                  onMouseLeave={e => e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06)"}
-                >
-                  👥 Inscripción a Grupos Focales
-                </button>
-              </div>
             </div>
           )}
 
           {/* CALENDAR */}
-          {!showAdmin && view === "calendar" && iv && (
+          {view === "calendar" && iv && (
             <div>
               <div className="cal-hdr">
-                <div className="cal-ini" style={{ background: iv.bgGradient }}>{iv.initials}</div>
+                <div className="cal-ini" style={{ background: "linear-gradient(135deg,#6B7280 0%,#4B5563 100%)" }}>{iv.initials}</div>
                 <div>
                   <h2 style={{ fontFamily: "'Libre Baskerville',serif", fontSize: "1.25rem", color: "#1A1A1A" }}>{iv.name}</h2>
                   <p style={{ fontSize: "0.8rem", color: "#6B6B6B", fontWeight: 300 }}>Duración: {DURATION_MIN} min · Microsoft Teams · UTC-4</p>
                 </div>
               </div>
               <div className="legend">
-                <span><span className="ldot" style={{ background: iv.accentColor }} />Disponible</span>
+                <span><span className="ldot" style={{ background: "#6B7280" }} />Disponible</span>
                 <span><span className="ldot" style={{ background: "#D1D5DB" }} />Ocupado</span>
               </div>
               <div className="cal-grid">
@@ -455,16 +425,12 @@ const handleBook = async () => {
                     <span style={{ fontSize: "0.66rem", color: "rgba(247,244,239,0.4)", textTransform: "uppercase", letterSpacing: "0.08em" }}>Horarios disponibles</span>
                   </div>
                 </div>
-               {Object.keys(iv.slots).sort().map(date => {
+                {Object.keys(iv.slots).sort().map(date => {
                   const [y, mo, d] = date.split("-").map(Number);
                   const obj = new Date(y, mo - 1, d);
-                  
-                  // --- INICIO FILTRO DE FECHAS PASADAS ---
                   const today = new Date();
-                  today.setHours(0, 0, 0, 0); // Reseteamos la hora para comparar solo el día exacto
-                  if (obj < today) return null; // Si la fecha es de ayer para atrás, no la dibuja
-                  // --- FIN FILTRO DE FECHAS PASADAS ---
-
+                  today.setHours(0, 0, 0, 0);
+                  if (obj < today) return null;
                   const times = iv.slots[date];
                   const allTaken = times.every(t => bookings[`${selectedIv}|${date}|${t}`]);
                   return (
@@ -479,7 +445,7 @@ const handleBook = async () => {
                           const taken = !!bookings[`${selectedIv}|${date}|${t}`];
                           return (
                             <button key={t} className={`slot ${taken ? "slot-t" : "slot-a"}`}
-                              style={taken ? {} : { background: iv.accentColor }} disabled={taken}
+                              style={taken ? {} : { background: "#6B7280" }} disabled={taken}
                               onClick={() => { setSlot({ date, time: t }); setShowModal(true); }}>
                               {t} hs {taken ? "✓" : ""}
                             </button>
@@ -493,87 +459,61 @@ const handleBook = async () => {
             </div>
           )}
 
-          {/* --- PANTALLA DE ÉXITO (CONFIRMACIÓN) --- */}
-          {!showAdmin && view === "success" && (
+          {/* PANTALLA DE ÉXITO */}
+          {view === "success" && (
             <div className="scard" style={{ textAlign: "center" }}>
               <div className="s-icon">✅</div>
               <div className="s-title">Reserva Confirmada</div>
               <p style={{ color: "#6B6B6B", fontSize: "0.9rem", marginBottom: "1.5rem" }}>
                 En el transcurso del día se les enviará el enlace para la reunión vía Teams
               </p>
-              
               {confirmedBooking && (
                 <div style={{ textAlign: "left", marginBottom: "1.5rem" }}>
-                  <div className="drow">
-                    <span className="dlbl">Candidato/a:</span>
-                    <span className="dval">{confirmedBooking.name}</span>
-                  </div>
+                  <div className="drow"><span className="dlbl">Candidato/a:</span><span className="dval">{confirmedBooking.name}</span></div>
                   <div className="drow">
                     <span className="dlbl">Entrevistador:</span>
                     <span className="dval" style={{ textTransform: "capitalize" }}>
-                      {INTERVIEWERS[confirmedBooking.iv]?.name || confirmedBooking.iv}
+                      {interviewers[confirmedBooking.iv]?.name || confirmedBooking.iv}
                     </span>
                   </div>
-                  <div className="drow">
-                    <span className="dlbl">Fecha:</span>
-                    <span className="dval" style={{ textTransform: "capitalize" }}>
-                      {formatDateShort(confirmedBooking.date)}
-                    </span>
-                  </div>
-                  <div className="drow">
-                    <span className="dlbl">Hora:</span>
-                    <span className="dval">{confirmedBooking.time} hs</span>
-                  </div>
+                  <div className="drow"><span className="dlbl">Fecha:</span><span className="dval" style={{ textTransform: "capitalize" }}>{formatDateShort(confirmedBooking.date)}</span></div>
+                  <div className="drow"><span className="dlbl">Hora:</span><span className="dval">{confirmedBooking.time} hs</span></div>
                 </div>
               )}
-
-              <button className="btn-p" onClick={downloadICS} style={{ marginBottom: "0.65rem" }}>
+              <button className="btn-p" onClick={downloadICS} style={{ marginBottom: "0.65rem", background: "#6B7280" }}>
                 Descargar evento (.ics)
               </button>
-              
-              <button className="btn-s" onClick={() => { 
-                setView("home"); 
-                setConfirmedBooking(null); 
-                setSelectedIv(null); 
-              }}>
+              <button className="btn-s" onClick={() => { setView("home"); setConfirmedBooking(null); setSelectedIv(null); }}>
                 Volver al inicio
               </button>
             </div>
           )}
-          
+
         </main>
-        
-       {/* --- INICIO DEL FOOTER ULTRA COMPACTO --- */}
-          <footer className="footer">
-            <div className="footer-content">
-              <div className="footer-title">Contacto</div>
-              <p style={{ fontSize: "0.6rem", marginBottom: "0.1rem", color: "rgba(247,244,239,0.6)" }}>
-                ¿Tiene alguna duda sobre esta página?
-              </p>
-              <a href="mailto:mrojas@fonplata.org" className="footer-email">
-                mrojas@fonplata.org
-              </a>
-              <div className="footer-copyright">
-                © 2026 FONPLATA · Estrategia Institucional 2027 - 2031.
-                <br />Todos los derechos reservados.
-              </div>
+
+        <footer className="footer">
+          <div className="footer-content">
+            <div className="footer-title">Contacto</div>
+            <p style={{ fontSize: "0.6rem", marginBottom: "0.1rem", color: "rgba(247,244,239,0.6)" }}>
+              ¿Tiene alguna duda sobre esta página?
+            </p>
+            <a href="mailto:mrojas@fonplata.org" className="footer-email">mrojas@fonplata.org</a>
+            <div className="footer-copyright">
+              © 2026 FONPLATA · Estrategia Institucional 2027 – 2031.<br />Todos los derechos reservados.
             </div>
-          </footer>
-          {/* --- FIN DEL FOOTER ULTRA COMPACTO --- */}
-       
-        
+          </div>
+        </footer>
+
       </div>
 
-
-        
-      {/* MODAL */}
+      {/* MODAL ENTREVISTA */}
       {showModal && slot && iv && (
         <div className="modal-bg" onClick={e => e.target === e.currentTarget && !loading && setShowModal(false)}>
           <div className="modal">
             <h2 className="m-title">Confirmar horario</h2>
             <p style={{ fontSize: "0.82rem", color: "#6B6B6B", marginTop: "0.2rem" }}>Completá tus datos para reservar este turno</p>
-            <div className="m-info" style={{ borderLeftColor: iv.accentColor }}>
-              <strong style={{ color: iv.accentColor }}>{iv.name}</strong><br />
+            <div className="m-info" style={{ borderLeftColor: "#6B7280" }}>
+              <strong style={{ color: "#6B7280" }}>{iv.name}</strong><br />
               <span style={{ color: "#4B4B4B", fontSize: "0.82rem" }}>📆 {formatDate(slot.date)} &nbsp; ⏰ {slot.time} hs</span>
             </div>
             <div style={{ marginBottom: "0.9rem" }}>
@@ -590,7 +530,7 @@ const handleBook = async () => {
             <div className="m-acts">
               <button className="btn-x" onClick={() => setShowModal(false)} disabled={loading}>Cancelar</button>
               <button className="btn-ok" disabled={loading || !form.name.trim() || !form.email.trim()}
-                style={{ background: (!form.name.trim() || !form.email.trim() || loading) ? "#D1D5DB" : iv.accentColor }}
+                style={{ background: (!form.name.trim() || !form.email.trim() || loading) ? "#D1D5DB" : "#6B7280" }}
                 onClick={handleBook}>
                 {loading ? "Reservando..." : "Confirmar"}
               </button>
@@ -602,16 +542,20 @@ const handleBook = async () => {
       {/* MODAL GRUPOS FOCALES — Grilla */}
       {showFocalModal && !showFocalForm && (
         <div className="modal-bg" onClick={e => e.target === e.currentTarget && setShowFocalModal(false)}>
-          <div className="modal" style={{ maxWidth: "560px" }}>
+          <div className="modal" style={{ maxWidth: "580px" }}>
             <h2 className="m-title">Grupos Focales</h2>
             <p style={{ fontSize: "0.82rem", color: "#6B6B6B", marginTop: "0.2rem", marginBottom: "1rem" }}>
               Seleccioná un cupo disponible en uno de los 6 grupos
             </p>
             {[1,2,3,4,5,6].map(g => (
               <div key={g} style={{ marginBottom: "0.85rem" }}>
-                <div style={{ fontSize: "0.72rem", fontWeight: 600, color: "#4B4B4B",
-                  textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "0.4rem" }}>
-                  Grupo {g}
+                <div style={{ display: "flex", alignItems: "baseline", gap: "0.6rem", marginBottom: "0.4rem" }}>
+                  <div style={{ fontSize: "0.72rem", fontWeight: 600, color: "#4B4B4B", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                    Grupo {g}
+                  </div>
+                  <div style={{ fontSize: "0.72rem", color: "#6B6B6B", fontWeight: 400 }}>
+                    {FOCAL_SCHEDULE[g].day} · {FOCAL_SCHEDULE[g].hours}
+                  </div>
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
                   {[1,2,3,4,5,6,7,8,9].map(s => {
@@ -619,7 +563,7 @@ const handleBook = async () => {
                     return (
                       <button key={s}
                         className={`slot ${taken ? "slot-t" : "slot-a"}`}
-                        style={taken ? {} : { background: "#1D4ED8" }}
+                        style={taken ? {} : { background: "#16A34A" }}
                         disabled={taken}
                         onClick={() => { setFocalSlot({ group: g, slot: s }); setFocalForm({ name: "", email: "" }); setShowFocalForm(true); }}>
                         {s} {taken ? "✓" : ""}
@@ -648,7 +592,7 @@ const handleBook = async () => {
                   Gracias por registrarse, el enlace de la reunión de los grupos focales será enviado una vez que el grupo esté completo.
                 </p>
                 <button className="btn-ok"
-                  style={{ background: "#1D4ED8", marginTop: "1.25rem", width: "100%", padding: "0.7rem" }}
+                  style={{ background: "#16A34A", marginTop: "1.25rem", width: "100%", padding: "0.7rem" }}
                   onClick={() => { setShowFocalModal(false); setShowFocalForm(false); setFocalSuccess(false); setFocalSlot(null); setFocalForm({ name: "", email: "" }); }}>
                   Cerrar
                 </button>
@@ -659,8 +603,12 @@ const handleBook = async () => {
                 <p style={{ fontSize: "0.82rem", color: "#6B6B6B", marginTop: "0.2rem" }}>
                   Completá tus datos para el Grupo {focalSlot.group} — Cupo {focalSlot.slot}
                 </p>
-                <div className="m-info" style={{ borderLeftColor: "#1D4ED8" }}>
-                  <strong style={{ color: "#1D4ED8" }}>Grupo {focalSlot.group}</strong> · Cupo {focalSlot.slot}
+                <div className="m-info" style={{ borderLeftColor: "#16A34A" }}>
+                  <strong style={{ color: "#16A34A" }}>Grupo {focalSlot.group}</strong> · Cupo {focalSlot.slot}
+                  <br />
+                  <span style={{ color: "#4B4B4B", fontSize: "0.82rem" }}>
+                    📆 {FOCAL_SCHEDULE[focalSlot.group].day} &nbsp; ⏰ {FOCAL_SCHEDULE[focalSlot.group].hours}
+                  </span>
                 </div>
                 <div style={{ marginBottom: "0.9rem" }}>
                   <label className="flabel">Nombre completo</label>
@@ -676,7 +624,7 @@ const handleBook = async () => {
                   <button className="btn-x" onClick={() => setShowFocalForm(false)} disabled={focalLoading}>← Volver</button>
                   <button className="btn-ok"
                     disabled={focalLoading || !focalForm.name.trim() || !focalForm.email.trim()}
-                    style={{ background: (!focalForm.name.trim() || !focalForm.email.trim() || focalLoading) ? "#D1D5DB" : "#1D4ED8" }}
+                    style={{ background: (!focalForm.name.trim() || !focalForm.email.trim() || focalLoading) ? "#D1D5DB" : "#16A34A" }}
                     onClick={async () => {
                       setFocalLoading(true);
                       try {
@@ -703,11 +651,6 @@ const handleBook = async () => {
   );
 }
 
-    // Debe decir solamente: function InterviewScheduler() { ... }
-    
-    // --------------------------------
-
-    // 4. Esta línea final arranca la aplicación y la muestra en pantalla
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<InterviewScheduler />);
   </script>
