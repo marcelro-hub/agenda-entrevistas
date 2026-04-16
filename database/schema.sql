@@ -47,12 +47,12 @@ CREATE INDEX IF NOT EXISTS idx_bookings_interviewer ON bookings(interviewer_id);
 CREATE INDEX IF NOT EXISTS idx_bookings_slot        ON bookings(slot_id);
 
 -- Tabla 4: Reservas de Grupos Focales
--- group_number: 1–6, slot_number: 1–9
+-- group_number: 1–7, slot_number: 1–8
 -- UNIQUE(group_number, slot_number) bloquea doble registro del mismo cupo
 CREATE TABLE IF NOT EXISTS focal_bookings (
     id              SERIAL      PRIMARY KEY,
-    group_number    INTEGER     NOT NULL CHECK (group_number BETWEEN 1 AND 6),
-    slot_number     INTEGER     NOT NULL CHECK (slot_number BETWEEN 1 AND 9),
+    group_number    INTEGER     NOT NULL CHECK (group_number BETWEEN 1 AND 7),
+    slot_number     INTEGER     NOT NULL CHECK (slot_number BETWEEN 1 AND 8),
     candidate_name  TEXT        NOT NULL,
     candidate_email TEXT        NOT NULL,
     booked_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),

@@ -25,7 +25,8 @@ const FOCAL_SCHEDULE = {
   3: { day: "Lunes 27 de abril",     hours: "9:00 – 10:30" },
   4: { day: "Lunes 27 de abril",     hours: "14:00 – 15:30" },
   5: { day: "Martes 28 de abril",    hours: "9:00 – 10:30" },
-  6: { day: "Miércoles 29 de abril", hours: "9:00 – 10:30" },
+  6: { day: "Martes 28 de abril",    hours: "14:00 – 15:30" },
+  7: { day: "Miércoles 29 de abril", hours: "9:00 – 10:30" },
 };
 
 function formatDate(dateStr) {
@@ -319,7 +320,7 @@ function InterviewScheduler() {
     const d = Object.keys(slots).sort(); return `${formatDateShort(d[0])} — ${formatDateShort(d[d.length-1])}`;
   }
 
-  const totalFocalSlots = 6 * 9;
+  const totalFocalSlots = 7 * 8;
   const takenFocalSlots = Object.keys(focalBookings).length;
   const availableFocalSlots = totalFocalSlots - takenFocalSlots;
 
@@ -355,7 +356,7 @@ function InterviewScheduler() {
                   <div className="focal-ini">👥</div>
                   <div>
                     <div className="focal-card-name">Inscripción a Grupos Focales</div>
-                    <div className="focal-card-sub">6 grupos · 9 cupos por grupo · Microsoft Teams</div>
+                    <div className="focal-card-sub">7 grupos · 8 cupos por grupo · Microsoft Teams</div>
                   </div>
                 </div>
                 <div className="focal-card-body">
@@ -545,7 +546,7 @@ function InterviewScheduler() {
             <p style={{ fontSize: "0.82rem", color: "#6B6B6B", marginTop: "0.2rem", marginBottom: "1rem" }}>
               Seleccioná un cupo disponible en uno de los 6 grupos
             </p>
-            {[1,2,3,4,5,6].map(g => (
+            {[1,2,3,4,5,6,7].map(g => (
               <div key={g} style={{ marginBottom: "0.85rem" }}>
                 <div style={{ display: "flex", alignItems: "baseline", gap: "0.6rem", marginBottom: "0.4rem" }}>
                   <div style={{ fontSize: "0.72rem", fontWeight: 700, color: "#1A1A1A", textTransform: "uppercase", letterSpacing: "0.05em" }}>
@@ -556,7 +557,7 @@ function InterviewScheduler() {
                   </div>
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
-                  {[1,2,3,4,5,6,7,8,9].map(s => {
+                  {[1,2,3,4,5,6,7,8].map(s => {
                     const taken = !!focalBookings[`${g}|${s}`];
                     return (
                       <button key={s}
