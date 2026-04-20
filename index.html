@@ -347,7 +347,7 @@ function InterviewScheduler() {
             <div>
               {/* SECCIÓN GRUPOS FOCALES */}
               <h2 className="sec-title">Grupos Focales</h2>
-              <p className="sec-sub">Participe en uno de los 6 grupos focales según disponibilidad de cupos.</p>
+              <p className="sec-sub">Participe en uno de los 7 grupos focales según disponibilidad de cupos.</p>
               <div
                 className="focal-card"
                 onClick={() => { setShowFocalModal(true); setShowFocalForm(false); setFocalSuccess(false); setFocalSlot(null); setFocalForm({ name: "", email: "" }); }}
@@ -541,7 +541,7 @@ function InterviewScheduler() {
           <div className="modal" style={{ maxWidth: "580px" }}>
             <h2 className="m-title">Grupos Focales</h2>
             <p style={{ fontSize: "0.82rem", color: "#6B6B6B", marginTop: "0.2rem", marginBottom: "1rem" }}>
-              Seleccioná un cupo disponible en uno de los 6 grupos
+              Seleccione un cupo disponible en uno de los 7 grupos
             </p>
             {[1,2,3,4,5,6,7].map(g => (
               <div key={g} style={{ marginBottom: "0.85rem" }}>
@@ -630,7 +630,7 @@ function InterviewScheduler() {
                           body: JSON.stringify({ group_number: focalSlot.group, slot_number: focalSlot.slot, name: focalForm.name, email: focalForm.email })
                         });
                         if (res.ok) { setFocalSuccess(true); loadFocalBookings(); }
-                        else if (res.status === 409) { alert("Este cupo acaba de ser tomado. Elegí otro."); setShowFocalForm(false); loadFocalBookings(); }
+                        else if (res.status === 409) { alert("Este cupo acaba de ser tomado. Puede escoger otro."); setShowFocalForm(false); loadFocalBookings(); }
                         else { alert("Error al registrar. Intente de nuevo."); }
                       } catch { alert("Problema de conexión."); }
                       finally { setFocalLoading(false); }
